@@ -1,6 +1,0 @@
-email,first_name,last_name,company,phone,status
-test1@example.com,John,Doe,Test Corp,+1-555-0001,active
-test2@example.com,Jane,Smith,Example Inc,+1-555-0002,active
-test3@example.com,Bob,Johnson,Sample Ltd,+1-555-0003,active
-invalid-email,Bad,Data,,+1-555-0004,active
-test4@example.com,Alice,Brown,Demo Company,+1-555-0005,unsubscribed
