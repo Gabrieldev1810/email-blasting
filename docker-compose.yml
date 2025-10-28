@@ -1,0 +1,105 @@
+version: '3.8'
+
+services:
+  # Frontend service
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: beacon-blast-frontend
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=http://backend:5001
+    depends_on:
+      - backend
+    networks:
+      - beacon-blast-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Backend service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: beacon-blast-backend
+    ports:
+      - "5001:5001"
+    environment:
+      - FLASK_ENV=production
+      - START_SCHEDULER=true
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///instance/beacon_blast.db}
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - PORT=5001
+    volumes:
+      - backend-data:/app/instance
+      - backend-uploads:/app/uploads
+      - backend-logs:/app/app/logs
+    networks:
+      - beacon-blast-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5001/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL database (optional - uncomment for production)
+  # db:
+  #   image: postgres:15-alpine
+  #   container_name: beacon-blast-db
+  #   environment:
+  #     - POSTGRES_USER=${POSTGRES_USER:-beaconblast}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  #     - POSTGRES_DB=${POSTGRES_DB:-beacon_blast}
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   networks:
+  #     - beacon-blast-network
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-beaconblast}"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+  # Redis for caching (optional)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: beacon-blast-redis
+  #   command: redis-server --appendonly yes
+  #   volumes:
+  #     - redis-data:/data
+  #   networks:
+  #     - beacon-blast-network
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+volumes:
+  backend-data:
+    driver: local
+  backend-uploads:
+    driver: local
+  backend-logs:
+    driver: local
+  # postgres-data:
+  #   driver: local
+  # redis-data:
+  #   driver: local
+
+networks:
+  beacon-blast-network:
+    driver: bridge

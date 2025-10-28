@@ -1,53 +1,154 @@
-# Welcome to your Lovable project
+# 📨 Beacon Blast - Email Marketing Platform
 
-## Project info
+A modern, full-stack email marketing platform built with React, Flask, and PostgreSQL.
 
-**URL**: https://lovable.dev/projects/1fab9ff2-5e96-4ede-863b-888f34d52f2a
+## 🚀 Project Overview
 
-## How can I edit this code?
+**Beacon Blast** is a comprehensive email marketing solution featuring:
+- 📧 **Email Campaign Management** - Create, send, and track email campaigns
+- 👥 **Contact Management** - Import, organize, and segment email lists  
+- ⚙️ **SMTP Integration** - Support for Gmail, Outlook, Yahoo, and custom SMTP
+- 📊 **Analytics Dashboard** - Track opens, clicks, bounces, and deliverability
+- 🎨 **Modern UI** - Responsive design with Tailwind CSS and Shadcn/UI
 
-There are several ways of editing your application.
+## 🏗️ Tech Stack
 
-**Use Lovable**
+### **Frontend**
+- ⚛️ **React 18** with TypeScript
+- 🎨 **Tailwind CSS** for styling
+- 🧩 **Shadcn/UI** component library
+- 📱 **Responsive design** (mobile-first)
+- ⚡ **Vite** for fast development
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/1fab9ff2-5e96-4ede-863b-888f34d52f2a) and start prompting.
+### **Backend**  
+- 🐍 **Flask** Python web framework
+- 🗄️ **PostgreSQL** database with SQLAlchemy ORM
+- 📧 **SMTP integration** (Gmail, Outlook, Yahoo, Custom)
+- 🔐 **JWT authentication**
+- 🔒 **Encrypted credential storage**
 
-Changes made via Lovable will be committed automatically to this repo.
+## 📁 Project Structure
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+beacon-blast-ui/                    # 📦 Monorepo Root
+├── src/                           # 🎨 Frontend (React + Tailwind)
+├── backend/                       # 🔧 Backend (Flask + PostgreSQL)  
+├── md-files/                      # 📚 Documentation
+└── public/                        # 🖼️ Static assets
 ```
 
-**Edit a file directly in GitHub**
+## 🚀 Quick Start
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### **Frontend Development**
+```bash
+# Clone repository
+git clone <YOUR_GIT_URL>
+cd beacon-blast-ui
 
-**Use GitHub Codespaces**
+# Install dependencies
+npm install
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
+# Start development server
+npm run dev
+# ➜ Local: http://localhost:5173
+```
+
+### **Backend Development**
+```bash
+# Navigate to backend
+cd backend
+
+# Create virtual environment
+python -m venv venv
+venv\Scripts\activate  # Windows
+# source venv/bin/activate  # macOS/Linux
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up environment
+copy .env.example .env
+# Edit .env with your database credentials
+
+# Start backend server
+python app.py
+# ➜ Local: http://localhost:5000
+```
+
+## 🎯 Features
+
+### ✅ **Completed Features**
+- 🎨 **Modern UI Design** - Professional interface with PRD color scheme
+- 📱 **Responsive Layout** - Works on desktop, tablet, and mobile
+- 👥 **Contact Management** - Import CSV, add/edit contacts, status tracking
+- ⚙️ **SMTP Configuration** - Multiple providers with connection testing
+- 🔧 **Settings Management** - User preferences, security settings
+- 🏗️ **Backend Architecture** - Complete Flask API structure
+- 📧 **Email Services** - SMTP integration with encryption
+- 🗄️ **Database Models** - User, Campaign, Contact, SMTP Config
+
+### 🔄 **In Development**
+- 📡 **API Routes** - REST endpoints for frontend integration
+- 🔐 **Authentication** - JWT-based user management  
+- 📧 **Campaign Sending** - Email delivery and tracking
+- 📊 **Analytics** - Open/click tracking and reporting
+
+## 📊 Project Status: 87% Complete
+
+**Frontend**: 🟢 90% Complete  
+**Backend**: 🟡 85% Complete  
+**Integration**: 🔴 0% Complete  
+
+## 🛠️ Development Commands
+
+### **Frontend** (from root directory)
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production  
+npm run preview      # Preview production build
+npm run lint         # Run ESLint
+```
+
+### **Backend** (from backend/ directory)  
+```bash
+python app.py        # Start Flask server
+flask db migrate     # Create migration
+flask db upgrade     # Apply migrations
+```
+
+## 🚀 Deployment
+
+### **Frontend** - Vercel (Recommended)
+```bash
+npm run build        # Build production files
+# Deploy dist/ folder to Vercel
+```
+
+### **Backend** - Render/AWS/Railway
+```bash
+# Set environment variables
+# Deploy backend/ folder with requirements.txt
+```
+
+## 📚 Documentation
+
+- 📋 **[Development Progress](DEVELOPMENT_PROGRESS.md)** - Current status and completed tasks
+- 🏗️ **[Monorepo Guide](MONOREPO_GUIDE.md)** - Project structure and workflow
+- 📝 **[Product Requirements](md-files/prd.md)** - Feature specifications
+- ✅ **[Task Breakdown](md-files/task.md)** - Development tasks
+- 📅 **[Execution Plan](md-files/plan.md)** - Project timeline
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
 ## What technologies are used for this project?

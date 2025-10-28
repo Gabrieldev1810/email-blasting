@@ -8,44 +8,45 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 96%;
-    --foreground: 288 10% 16%;
+    /* PRD Color Palette Implementation */
+    --background: 0 0% 96%; /* Pure White (#F5F5F5) */
+    --foreground: 273 12% 16%; /* Charcoal Black (#2B262D) */
 
     --card: 0 0% 100%;
-    --card-foreground: 288 10% 16%;
+    --card-foreground: 273 12% 16%; /* Charcoal Black */
 
     --popover: 0 0% 100%;
-    --popover-foreground: 288 10% 16%;
+    --popover-foreground: 273 12% 16%; /* Charcoal Black */
 
-    --primary: 32 92% 56%;
+    --primary: 32 92% 56%; /* Vibrant Orange (#F79A25) */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 54%;
+    --secondary: 0 0% 54%; /* Cool Gray (#8A8A8A) */
     --secondary-foreground: 0 0% 100%;
 
     --muted: 0 0% 90%;
-    --muted-foreground: 0 0% 54%;
+    --muted-foreground: 0 0% 54%; /* Cool Gray */
 
-    --accent: 48 100% 59%;
-    --accent-foreground: 288 10% 16%;
+    --accent: 48 100% 59%; /* Bright Yellow (#FFD52E) */
+    --accent-foreground: 273 12% 16%; /* Charcoal Black */
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 0 0% 88%;
     --input: 0 0% 88%;
-    --ring: 32 92% 56%;
+    --ring: 32 92% 56%; /* Vibrant Orange */
 
     --radius: 0.75rem;
 
-    --sidebar-background: 288 10% 16%;
-    --sidebar-foreground: 0 0% 96%;
-    --sidebar-primary: 32 92% 56%;
+    --sidebar-background: 273 12% 16%; /* Charcoal Black (#2B262D) */
+    --sidebar-foreground: 0 0% 96%; /* Pure White */
+    --sidebar-primary: 32 92% 56%; /* Vibrant Orange */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 288 10% 22%;
+    --sidebar-accent: 273 12% 22%; /* Darker Charcoal */
     --sidebar-accent-foreground: 0 0% 96%;
-    --sidebar-border: 288 10% 22%;
-    --sidebar-ring: 32 92% 56%;
+    --sidebar-border: 273 12% 22%;
+    --sidebar-ring: 32 92% 56%; /* Vibrant Orange */
 
     --chart-1: 32 92% 56%;
     --chart-2: 48 100% 59%;
@@ -55,42 +56,43 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 288 10% 16%;
-    --foreground: 0 0% 96%;
+    /* Dark Mode - PRD Color Palette */
+    --background: 273 12% 16%; /* Charcoal Black (#2B262D) */
+    --foreground: 0 0% 96%; /* Pure White (#F5F5F5) */
 
-    --card: 288 10% 20%;
-    --card-foreground: 0 0% 96%;
+    --card: 273 12% 20%; /* Slightly lighter charcoal */
+    --card-foreground: 0 0% 96%; /* Pure White */
 
-    --popover: 288 10% 20%;
+    --popover: 273 12% 20%;
     --popover-foreground: 0 0% 96%;
 
-    --primary: 32 92% 56%;
+    --primary: 32 92% 56%; /* Vibrant Orange (#F79A25) */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 54%;
+    --secondary: 0 0% 54%; /* Cool Gray (#8A8A8A) */
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 288 10% 25%;
+    --muted: 273 12% 25%; /* Darker charcoal */
     --muted-foreground: 0 0% 70%;
 
-    --accent: 48 100% 59%;
-    --accent-foreground: 288 10% 16%;
+    --accent: 48 100% 59%; /* Bright Yellow (#FFD52E) */
+    --accent-foreground: 273 12% 16%; /* Charcoal Black */
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 288 10% 25%;
-    --input: 288 10% 25%;
-    --ring: 32 92% 56%;
+    --border: 273 12% 25%;
+    --input: 273 12% 25%;
+    --ring: 32 92% 56%; /* Vibrant Orange */
 
-    --sidebar-background: 288 10% 14%;
-    --sidebar-foreground: 0 0% 96%;
-    --sidebar-primary: 32 92% 56%;
+    --sidebar-background: 273 12% 14%; /* Darker charcoal */
+    --sidebar-foreground: 0 0% 96%; /* Pure White */
+    --sidebar-primary: 32 92% 56%; /* Vibrant Orange */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 288 10% 22%;
+    --sidebar-accent: 273 12% 22%;
     --sidebar-accent-foreground: 0 0% 96%;
-    --sidebar-border: 288 10% 22%;
-    --sidebar-ring: 32 92% 56%;
+    --sidebar-border: 273 12% 22%;
+    --sidebar-ring: 32 92% 56%; /* Vibrant Orange */
 
     --chart-1: 32 92% 56%;
     --chart-2: 48 100% 59%;
@@ -107,5 +109,57 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Theme transition animations */
+  * {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+
+  /* Smooth theme transitions for specific elements */
+  body, 
+  [data-theme] {
+    transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+  }
+
+  /* Dashboard animations */
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-slide-in {
+    animation: slide-in 0.5s ease-out forwards;
+  }
+
+  /* Column chart hover effects */
+  .chart-column:hover {
+    filter: brightness(1.1);
+    transform: scaleY(1.02);
   }
 }
