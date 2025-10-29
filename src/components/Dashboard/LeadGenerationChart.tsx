@@ -105,17 +105,8 @@ export const LeadGenerationChart = () => {
     }
 
     function renderChart() {
-      const defaultData = [
-        { day: "Mon", email_campaigns: 31, organic_leads: 12 },
-        { day: "Tue", email_campaigns: 25, organic_leads: 18 },
-        { day: "Wed", email_campaigns: 42, organic_leads: 8 },
-        { day: "Thu", email_campaigns: 38, organic_leads: 25 },
-        { day: "Fri", email_campaigns: 33, organic_leads: 30 },
-        { day: "Sat", email_campaigns: 28, organic_leads: 15 },
-        { day: "Sun", email_campaigns: 20, organic_leads: 10 },
-      ];
-
-      const data = leadData.length > 0 ? leadData : defaultData;
+      // Use only real data from API, no fallback mock data
+      const data = leadData.length > 0 ? leadData : [];
 
       // Get theme-aware colors
       const computedStyle = getComputedStyle(document.documentElement);

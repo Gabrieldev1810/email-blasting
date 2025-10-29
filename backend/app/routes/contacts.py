@@ -520,25 +520,8 @@ def upload_csv():
 def download_csv_template():
     """Download a CSV template for importing contacts."""
     try:
-        # Create a sample CSV template
-        template_data = [
-            {
-                'email': 'john.doe@example.com',
-                'first_name': 'John',
-                'last_name': 'Doe',
-                'company': 'Example Corp',
-                'phone': '+1-555-0123',
-                'status': 'active'
-            },
-            {
-                'email': 'jane.smith@example.com',
-                'first_name': 'Jane',
-                'last_name': 'Smith',
-                'company': 'Sample Inc',
-                'phone': '+1-555-0456',
-                'status': 'active'
-            }
-        ]
+        # Create an empty CSV template with headers only
+        template_data = []
         
         # Convert to CSV format
         output = StringIO()
