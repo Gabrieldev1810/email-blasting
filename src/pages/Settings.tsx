@@ -49,17 +49,31 @@ export default function Settings() {
     
     // Load admin SMTP data if user is admin
     const user = localStorage.getItem('user');
-    if (user) {
+    const token = localStorage.getItem('access_token');
+    
+    console.log('Token exists:', !!token);
+    console.log('User data:', user);
+    
+    if (user && token) {
       try {
         const userData = JSON.parse(user);
+        console.log('Parsed user data:', userData);
+        console.log('Is admin:', userData.is_admin);
         setCurrentUser(userData);
+        
         if (userData.is_admin) {
-          fetchAvailableSmtpSettings();
-          fetchAdminSmtpPreference();
+          console.log('Fetching admin SMTP settings...');
+          // Add a small delay to ensure authentication is ready
+          setTimeout(() => {
+            fetchAvailableSmtpSettings();
+            fetchAdminSmtpPreference();
+          }, 500);
         }
       } catch (error) {
-        // Production: Error handled silently
+        console.error('Error parsing user data:', error);
       }
+    } else {
+      console.error('Missing user or token in localStorage');
     }
   }, []);
 
@@ -94,28 +108,41 @@ export default function Settings() {
   // Admin SMTP Management Functions
   const fetchAvailableSmtpSettings = async () => {
     try {
-      // Production: console.log removed
       const token = localStorage.getItem('access_token');
+      if (!token) {
+        console.error('No access token found');
+        setAvailableSmtpSettings([]);
+        return;
+      }
+      
       const response = await fetch('http://localhost:5001/api/admin/smtp-settings', {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
       });
       
-      // Production: console.log removed
       if (response.ok) {
         const result = await response.json();
-        // Production: console.log removed
         if (result.success) {
           setAvailableSmtpSettings(result.smtp_settings || []);
-          // Production: console.log removed
+        } else {
+          console.error('Failed to fetch SMTP settings:', result.error);
+          setAvailableSmtpSettings([]);
         }
       } else {
-        // Production: Error handled silently
+        if (response.status === 401) {
+          toast({
+            title: "Authentication Error",
+            description: "Please log out and log in again.",
+            variant: "destructive",
+          });
+        }
+        console.error('HTTP error:', response.status);
         setAvailableSmtpSettings([]);
       }
     } catch (error) {
-      // Production: Error handled silently
+      console.error('Error fetching SMTP settings:', error);
       setAvailableSmtpSettings([]);
     }
   };
@@ -124,37 +151,45 @@ export default function Settings() {
     try {
       const token = localStorage.getItem('access_token');
       const user = localStorage.getItem('user');
-      // Production: console.log removed
-      if (user) {
-        const userData = JSON.parse(user);
-        setCurrentUser(userData);
-        // Production: console.log removed
-        const response = await fetch(`http://localhost:5001/api/admin/users/${userData.id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        // Production: console.log removed
-        if (response.ok) {
-          const result = await response.json();
-          // Production: console.log removed
-          if (result.success) {
-            if (result.user.smtp_settings_id) {
-              setAdminSmtpPreference(result.user.smtp_settings_id.toString());
-              // Production: console.log removed
-            } else {
-              setAdminSmtpPreference('none');
-              // Production: console.log removed
-            }
-          }
-        } else {
-          // Production: Error handled silently
-          setAdminSmtpPreference('none');
+      
+      if (!token || !user) {
+        console.error('No token or user found');
+        setAdminSmtpPreference('none');
+        return;
+      }
+      
+      const userData = JSON.parse(user);
+      setCurrentUser(userData);
+      
+      const response = await fetch(`http://localhost:5001/api/admin/users/${userData.id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          if (result.user.smtp_settings_id) {
+            setAdminSmtpPreference(result.user.smtp_settings_id.toString());
+          } else {
+            setAdminSmtpPreference('none');
+          }
+        }
+      } else {
+        if (response.status === 401) {
+          toast({
+            title: "Authentication Error",
+            description: "Please log out and log in again.",
+            variant: "destructive",
+          });
+        }
+        console.error('HTTP error:', response.status);
+        setAdminSmtpPreference('none');
       }
     } catch (error) {
-      // Production: Error handled silently
+      console.error('Error fetching admin SMTP preference:', error);
       setAdminSmtpPreference('none');
     }
   };
@@ -294,9 +329,11 @@ export default function Settings() {
       });
       setConfigured(true);
       
+      // Reload SMTP settings to show the newly added one
+      await loadSMTPSettings();
+      
       // Refresh admin SMTP settings list if user is admin
       if (currentUser?.is_admin) {
-        // Production: console.log removed
         await fetchAvailableSmtpSettings();
       }
     } catch (error: any) {
