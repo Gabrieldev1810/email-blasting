@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { Card } from 'flowbite-react';
-import { TrendingUp } from 'lucide-react';
 
 // Since Flowbite doesn't include ApexCharts by default, we'll create a simple CSS-based column chart
 interface ColumnChartData {
@@ -19,11 +18,6 @@ interface ColumnChartProps {
 export function ColumnChart({ title, subtitle, data, className = "" }: ColumnChartProps) {
   const maxValue = Math.max(...data.map(item => item.value), 1); // Ensure minimum of 1 to avoid division by zero
   
-  console.log('ColumnChart - Component rendered!');
-  console.log('ColumnChart - Data received:', data);
-  console.log('ColumnChart - Max value:', maxValue);
-  console.log('ColumnChart - Data length:', data.length);
-  
   return (
     <Card className={`w-full ${className}`}>
       <div className="p-6">
@@ -37,10 +31,6 @@ export function ColumnChart({ title, subtitle, data, className = "" }: ColumnCha
                 {subtitle}
               </p>
             )}
-          </div>
-          <div className="flex items-center text-green-500">
-            <TrendingUp className="h-5 w-5 mr-1" />
-            <span className="text-sm font-medium">+15% Growth</span>
           </div>
         </div>
         
@@ -79,8 +69,6 @@ export function ColumnChart({ title, subtitle, data, className = "" }: ColumnCha
               const baseHeight = maxValue > 0 ? (item.value / maxValue) * 85 : 0; // Use 85% of container height
               const height = Math.max(baseHeight, item.value > 0 ? 10 : 0); // Minimum 10% if value > 0
               const color = item.color || `hsl(${(index * 360) / data.length}, 70%, 50%)`;
-              
-              console.log(`Bar ${item.label}: value=${item.value}, baseHeight=${baseHeight.toFixed(2)}%, finalHeight=${height.toFixed(2)}%, maxValue=${maxValue}`);
               
               return (
                 <div key={item.label} className="flex flex-col items-center flex-1 group relative">

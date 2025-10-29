@@ -17,8 +17,6 @@ export default function Dashboard() {
     setError(null);
     try {
       const response = await dashboardAPI.getStats();
-      console.log('Dashboard API Response:', response);
-      console.log('Dashboard Data:', response.data);
       setDashboardData(response.data);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
@@ -31,86 +29,43 @@ export default function Dashboard() {
   useEffect(() => {
     fetchDashboardData();
   }, []);
-  // Calculate dynamic trend for Total Sent Emails
-  const calculateEmailTrend = (data: any) => {
-    if (!data) return null;
-    
-    const deliveryRate = 100 - data.email_bounce_rate;
-    const openRate = data.email_open_rate;
-    
-    // Calculate overall performance score (combination of delivery and engagement)
-    const performanceScore = (deliveryRate * 0.6) + (openRate * 0.4);
-    
-    // Determine trend based on performance
-    let trendText = "";
-    let isPositive = true;
-    
-    if (performanceScore >= 80) {
-      trendText = "Excellent performance";
-      isPositive = true;
-    } else if (performanceScore >= 60) {
-      trendText = "Good engagement";
-      isPositive = true;
-    } else if (performanceScore >= 40) {
-      trendText = "Moderate performance";
-      isPositive = false;
-    } else {
-      trendText = "Needs improvement";
-      isPositive = false;
-    }
-    
-    return { value: trendText, isPositive };
-  };
 
-  // Always use test data for Total Sent Emails for debugging
-  const totalSentEmailsData = {
+  // Calculate dynamic data from API response
+  const totalSentEmailsData = dashboardData ? {
     title: "Total Sent Emails",
-    value: "1,250",
+    value: dashboardData.total_emails_sent?.toLocaleString() || "0",
     icon: Mail,
-    trend: { value: "+25% this month", isPositive: true },
-  };
-  
-  console.log('Total Sent Emails Data:', totalSentEmailsData);
+    trend: dashboardData.email_trend || null,
+  } : null;
 
-  // Always use test data for now to debug chart rendering
-  const columnChartData = [
-    { label: "Sent", value: 100, color: "#3b82f6" },
-    { label: "Delivered", value: 85, color: "#10b981" },
-    { label: "Opened", value: 60, color: "#f59e0b" },
-    { label: "Clicked", value: 25, color: "#8b5cf6" },
-    { label: "Bounced", value: 15, color: "#ef4444" },
-  ];
-  
-  console.log('Dashboard Data Available:', !!dashboardData);
-  console.log('Column Chart Data:', columnChartData);
-  
+  const columnChartData = dashboardData ? [
+    { label: "Sent", value: dashboardData.total_emails_sent || 0, color: "#3b82f6" },
+    { label: "Delivered", value: dashboardData.total_delivered || 0, color: "#10b981" },
+    { label: "Opened", value: dashboardData.total_opened || 0, color: "#f59e0b" },
+    { label: "Clicked", value: dashboardData.total_clicked || 0, color: "#8b5cf6" },
+    { label: "Bounced", value: dashboardData.total_bounced || 0, color: "#ef4444" },
+  ] : [];
 
-
-
-
-  // Always use test data for debugging
-  const stats = [
+  const stats = dashboardData ? [
     {
       title: "Active Campaigns",
-      value: "5",
+      value: dashboardData.active_campaigns?.toString() || "0",
       icon: Send,
-      trend: { value: "+2 this week", isPositive: true },
+      trend: dashboardData.campaigns_trend || null,
     },
     {
       title: "Delivery Rate",
-      value: "94.2%",
+      value: `${(dashboardData.delivery_rate || 0).toFixed(1)}%`,
       icon: TrendingUp,
-      trend: { value: "+3.1% vs last month", isPositive: true },
+      trend: dashboardData.delivery_trend || null,
     },
     {
       title: "Open Rate", 
-      value: "31.8%",
+      value: `${(dashboardData.open_rate || 0).toFixed(1)}%`,
       icon: Eye,
-      trend: { value: "+5.2% improvement", isPositive: true },
+      trend: dashboardData.open_trend || null,
     },
-  ];
-  
-  console.log('Stats array:', stats);
+  ] : [];
 
   const recentCampaigns = dashboardData?.recent_campaigns || [];
 
