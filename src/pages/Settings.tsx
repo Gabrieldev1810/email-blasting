@@ -616,6 +616,13 @@ export default function Settings() {
 
               <div className="flex gap-2 flex-wrap">
                 <Button 
+                  onClick={handleSave}
+                  disabled={loading}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {loading ? "Saving..." : "Save SMTP Settings"}
+                </Button>
+                <Button 
                   onClick={handleTestConnection} 
                   variant="outline"
                   disabled={testing || !smtpConfig.username || !smtpConfig.password}
@@ -624,14 +631,39 @@ export default function Settings() {
                   {testing ? "Testing..." : "Test Connection"}
                 </Button>
                 {configured && (
-                  <Button 
-                    onClick={handleDelete} 
-                    variant="destructive"
-                    disabled={deleting}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    {deleting ? "Deleting..." : "Delete SMTP"}
-                  </Button>
+                  <>
+                    <Button 
+                      onClick={() => {
+                        setSmtpConfig({
+                          provider: "gmail",
+                          host: "smtp.gmail.com",
+                          port: "587",
+                          username: "",
+                          password: "",
+                          encryption: "tls",
+                          sender_name: "",
+                          sender_email: "",
+                        });
+                        setConfigured(false);
+                        toast({
+                          title: "Form Cleared",
+                          description: "You can now add a new SMTP configuration.",
+                        });
+                      }} 
+                      variant="outline"
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Add New SMTP
+                    </Button>
+                    <Button 
+                      onClick={handleDelete} 
+                      variant="destructive"
+                      disabled={deleting}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      {deleting ? "Deleting..." : "Delete Current SMTP"}
+                    </Button>
+                  </>
                 )}
                 <Badge variant={configured ? "default" : "secondary"}>
                   {configured ? "Configured" : "Not Configured"}

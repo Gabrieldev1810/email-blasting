@@ -38,11 +38,14 @@ def save_smtp_settings():
             if field not in data or not data[field]:
                 return jsonify({'success': False, 'error': f'Missing required field: {field}'}), 400
         
-        # Check if settings exist
-        existing_settings = SMTPSettings.query.first()
+        # Check if an SMTP setting with the same host and username already exists
+        existing_settings = SMTPSettings.query.filter_by(
+            host=data['host'],
+            username=data['username']
+        ).first()
         
         if existing_settings:
-            # Update existing settings
+            # Update existing settings with same host/username
             existing_settings.provider = data.get('provider', 'custom')
             existing_settings.host = data['host']
             existing_settings.port = int(data['port'])
@@ -53,6 +56,10 @@ def save_smtp_settings():
             existing_settings.sender_email = data.get('sender_email', '')
             existing_settings.is_configured = True
             existing_settings.updated_at = datetime.utcnow()
+            
+            message = 'SMTP settings updated successfully'
+            
+            message = 'SMTP settings updated successfully'
         else:
             # Get or create default user
             from app.models.user import User
@@ -68,7 +75,7 @@ def save_smtp_settings():
                 db.session.add(default_user)
                 db.session.flush()  # Get the ID without committing yet
             
-            # Create new settings
+            # Create new SMTP settings (add to list)
             new_settings = SMTPSettings(
                 provider=data.get('provider', 'custom'),
                 host=data['host'],
@@ -82,10 +89,12 @@ def save_smtp_settings():
                 user_id=default_user.id
             )
             db.session.add(new_settings)
+            
+            message = 'New SMTP settings added successfully'
         
         db.session.commit()
         
-        return jsonify({'success': True, 'message': 'SMTP settings saved successfully'})
+        return jsonify({'success': True, 'message': message})
         
     except Exception as e:
         db.session.rollback()
