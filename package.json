@@ -10,8 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "start": "node server.js",
-    "build:production": "npm run build && npm run setup:backend",
-    "setup:backend": "cd backend && pip install -r requirements.txt"
+    "postbuild": "echo 'Build completed. Frontend built to dist/' && ls -la dist/",
+    "prestart": "echo 'Starting production server...' && echo 'Backend dependencies:' && cd backend && pip list | head -5 && cd .."
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

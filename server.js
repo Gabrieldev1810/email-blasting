@@ -13,6 +13,14 @@ const PORT = process.env.PORT || 3000;
 // Enable CORS for all routes
 app.use(cors());
 
+// Parse JSON bodies
+app.use(express.json());
+
+// Health check endpoint for deployment platforms
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+
 // Serve static files from the dist directory
 app.use(express.static(join(__dirname, 'dist')));
 
@@ -20,7 +28,7 @@ app.use(express.static(join(__dirname, 'dist')));
 const startBackend = () => {
   console.log('Starting Flask backend...');
   
-  const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
+  const pythonCommand = 'python3';
   const backend = spawn(pythonCommand, [
     join(__dirname, 'backend', 'app.py')
   ], {
@@ -31,7 +39,7 @@ const startBackend = () => {
       FLASK_ENV: 'production'
     },
     stdio: ['pipe', 'pipe', 'pipe'],
-    shell: true
+    shell: false
   });
 
   backend.stdout.on('data', (data) => {

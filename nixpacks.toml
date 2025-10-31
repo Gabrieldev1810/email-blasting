@@ -2,15 +2,16 @@
 cmd = "npm start"
 
 [phases.setup]
-nixPkgs = ["python310", "nodejs_20", "python310Packages.pip"]
+nixPkgs = ["python310", "nodejs_20", "python310Packages.pip", "curl", "wget"]
 
 [phases.install]
 cmd = "npm ci && cd backend && pip install -r requirements.txt && cd .."
 
-[phases.build]
+[phases.build] 
 cmd = "npm run build"
 
 [variables]
 NODE_ENV = "production"
 FLASK_ENV = "production"
 PORT = "3000"
+NIXPACKS_NO_SPA_FALLBACK = "1"
