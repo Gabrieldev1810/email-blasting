@@ -12,6 +12,7 @@ services:
     environment:
       - NODE_ENV=production
       - VITE_API_URL=http://backend:5001
+      - DATABASE_URL=postgresql://postgresql-database-hgwks4o884cgo8wo8ok84ock:K8A1EuplrcGvVwi577BihGvTkKXbWhe6WDA5OJY6sE7XGd4GXCmdaeUTNddPpNRl@postgresql-database-hgwks4o884cgo8wo8ok84ock:5432/postgresql-database-hgwks4o884cgo8wo8ok84ock
     depends_on:
       - backend
     networks:

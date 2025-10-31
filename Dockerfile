@@ -1,11 +1,13 @@
 # Production Dockerfile for Beacon Blast Email Platform
 FROM node:20-slim
 
-# Install system dependencies including Python
+# Install system dependencies including Python and PostgreSQL client
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-venv \
+    postgresql-client \
+    libpq-dev \
     curl \
     wget \
     && rm -rf /var/lib/apt/lists/*
