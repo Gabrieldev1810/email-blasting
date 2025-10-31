@@ -7,6 +7,9 @@ yarn-error.log*
 # Build output (don't ignore dist/ as we need it for production)
 build/
 
+# Don't ignore build-temp directory (contains package files)
+!.build-temp/
+
 # IDE
 .vscode/
 .idea/

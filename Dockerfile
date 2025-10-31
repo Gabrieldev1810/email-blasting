@@ -13,8 +13,8 @@ RUN apt-get update && apt-get install -y \
 # Create app directory
 WORKDIR /app
 
-# Copy package files and install Node.js dependencies
-COPY package*.json ./
+# Copy package files from temp directory and install Node.js dependencies
+COPY .build-temp/package*.json ./
 RUN npm ci --only=production
 
 # Copy application source
