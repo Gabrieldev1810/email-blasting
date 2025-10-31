@@ -1,7 +1,5 @@
 # Nixpacks configuration for Beacon Blast Email Platform
-# Use Node.js provider but override start command for Flask backend
-
-providers = ["node"]
+# Explicitly configure Node.js and Python setup
 
 [variables]
 NODE_ENV = "production" 
@@ -9,20 +7,13 @@ FLASK_ENV = "production"
 PORT = "3000"
 PYTHONPATH = "/app/backend"
 PYTHONUNBUFFERED = "1"
-DATABASE_URL = "sqlite:////app/backend/app.db"
-JWT_SECRET_KEY = "production-jwt-secret-change-me"
-SECRET_KEY = "production-secret-key-change-me"
-START_SCHEDULER = "false"
 
 [phases.setup]
 nixPkgs = ["python312", "python312Packages.pip"]
+nixOverlays = ["https://github.com/railwayapp/nix-npm-overlay/archive/main.tar.gz"]
 
 [phases.build]
 cmds = [
-    "npm --version",
-    "node --version", 
-    "npm ci",
-    "npm run build",
     "python3 --version",
     "pip3 install --no-cache-dir -r backend/requirements.txt"
 ]
