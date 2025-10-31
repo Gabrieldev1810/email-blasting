@@ -13,9 +13,9 @@ RUN apt-get update && apt-get install -y \
 # Create app directory
 WORKDIR /app
 
-# Copy package files from temp directory and install Node.js dependencies
+# Copy package files from temp directory and install ALL dependencies (including dev deps for building)
 COPY .build-temp/package*.json ./
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy application source
 COPY . .
@@ -31,6 +31,9 @@ ENV NODE_PATH="/usr/local/lib/node_modules"
 
 # Build frontend
 RUN npm run build
+
+# Remove development dependencies to reduce image size
+RUN npm prune --only=production
 
 # Create production user
 RUN useradd -r -s /bin/false appuser
