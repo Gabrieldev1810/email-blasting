@@ -25,8 +25,9 @@ RUN python3 -m venv /app/venv
 RUN /app/venv/bin/pip install --upgrade pip
 RUN /app/venv/bin/pip install --no-cache-dir -r backend/requirements.txt
 
-# Add virtual environment to PATH
-ENV PATH="/app/venv/bin:$PATH"
+# Add virtual environment to PATH and ensure Node.js is accessible
+ENV PATH="/app/venv/bin:/usr/local/bin:$PATH"
+ENV NODE_PATH="/usr/local/lib/node_modules"
 
 # Build frontend
 RUN npm run build
@@ -44,4 +45,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:3001/health || exit 1
 
 # Start the application
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
