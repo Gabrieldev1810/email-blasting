@@ -1,4 +1,0 @@
-[variables]
-NODE_ENV = "production"
-FLASK_ENV = "production"
-PORT = "3000"
