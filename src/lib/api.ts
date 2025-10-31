@@ -23,13 +23,22 @@ export const authUtils = {
   // Clear authentication data
   clearAuth: (): void => {
     localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
   },
 
   // Store authentication data
-  storeAuth: (token: string, user: any): void => {
+  storeAuth: (token: string, user: any, refreshToken?: string): void => {
     localStorage.setItem('access_token', token);
     localStorage.setItem('user', JSON.stringify(user));
+    if (refreshToken) {
+      localStorage.setItem('refresh_token', refreshToken);
+    }
+  },
+
+  // Get refresh token
+  getRefreshToken: (): string | null => {
+    return localStorage.getItem('refresh_token');
   },
 
   // Logout and redirect to login
@@ -45,6 +54,7 @@ export const authAPI = {
   login: (credentials: { email: string; password: string }) => {
     return apiRequest<{
       access_token: string;
+      refresh_token: string;
       user: {
         id: number;
         email: string;
@@ -68,6 +78,22 @@ export const authAPI = {
         last_name: string;
       };
     }>('/auth/me');
+  },
+
+  // Refresh access token
+  refreshToken: (refreshToken: string) => {
+    return apiRequest<{
+      access_token: string;
+      user: {
+        id: number;
+        email: string;
+        first_name: string;
+        last_name: string;
+      };
+    }>('/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
   },
 
   // Logout
@@ -120,6 +146,132 @@ export const dashboardAPI = {
   },
 };
 
+// Campaign interfaces
+export interface Campaign {
+  id: number;
+  name: string;
+  subject: string;
+  sender_name: string;
+  sender_email: string;
+  reply_to: string;
+  html_content: string;
+  text_content: string;
+  status: 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed';
+  total_recipients: number;
+  emails_sent: number;
+  emails_opened: number;
+  emails_clicked: number;
+  emails_bounced: number;
+  open_rate: number;
+  click_rate: number;
+  bounce_rate: number;
+  created_at: string;
+  scheduled_at?: string;
+  sent_at?: string;
+}
+
+export interface CampaignCreateData {
+  name: string;
+  subject: string;
+  sender_name?: string;
+  sender_email: string;
+  reply_to?: string;
+  email_content: string;  // html_content
+  text_content?: string;
+  recipients?: string;  // comma-separated emails
+  send_immediately?: boolean;
+  scheduled_at?: string;
+  smtp_account_id: number;
+}
+
+export interface CampaignSendResponse {
+  success: boolean;
+  message: string;
+  sent_count: number;
+  failed_count: number;
+  total_recipients: number;
+}
+
+export interface TestEmailData {
+  subject: string;
+  sender_name?: string;
+  sender_email: string;
+  test_email: string;
+  email_content: string;
+}
+
+// Campaigns API functions
+export const campaignsAPI = {
+  // Get all campaigns (filtered by user role)
+  getCampaigns: () => {
+    return apiRequest<{
+      success: boolean;
+      campaigns: Campaign[];
+      total: number;
+    }>('/campaigns');
+  },
+
+  // Get single campaign by ID
+  getCampaign: (id: number) => {
+    return apiRequest<{
+      success: boolean;
+      campaign: Campaign;
+    }>(`/campaigns/${id}`);
+  },
+
+  // Create new campaign
+  createCampaign: (data: CampaignCreateData) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+      campaign_id: number;
+    }>('/campaigns', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Update existing campaign
+  updateCampaign: (id: number, data: Partial<CampaignCreateData>) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+    }>(`/campaigns/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // Delete campaign
+  deleteCampaign: (id: number, force: boolean = false) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+    }>(`/campaigns/${id}${force ? '?force=true' : ''}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Send campaign
+  sendCampaign: (id: number, forceSend: boolean = false) => {
+    return apiRequest<CampaignSendResponse>(`/campaigns/${id}/send`, {
+      method: 'POST',
+      body: JSON.stringify({ force_send: forceSend }),
+    });
+  },
+
+  // Send test email
+  sendTestEmail: (data: TestEmailData) => {
+    return apiRequest<{
+      success: boolean;
+      message: string;
+    }>('/campaigns/test-email', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+};
+
 // Generic API request function
 async function apiRequest<T>(
   endpoint: string,
@@ -152,9 +304,36 @@ async function apiRequest<T>(
           data.error.includes('token has expired') ||
           data.error.includes('Authentication error')
         )) {
+          // Try to refresh the token before giving up
+          const refreshToken = localStorage.getItem('refresh_token');
+          if (refreshToken && !endpoint.includes('/auth/refresh')) {
+            try {
+              const refreshResult = await authAPI.refreshToken(refreshToken);
+              // Store new access token
+              authUtils.storeAuth(refreshResult.access_token, refreshResult.user);
+              
+              // Retry the original request with new token
+              const newConfig = {
+                ...config,
+                headers: {
+                  ...config.headers,
+                  'Authorization': `Bearer ${refreshResult.access_token}`,
+                }
+              };
+              
+              const retryResponse = await fetch(url, newConfig);
+              const retryData = await retryResponse.json();
+              
+              if (retryResponse.ok) {
+                return retryData;
+              }
+            } catch (refreshError) {
+              console.error('Token refresh failed:', refreshError);
+            }
+          }
+          
           // Clear expired token and user data
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('user');
+          authUtils.clearAuth();
           
           // Redirect to login page
           window.location.href = '/login';
@@ -429,6 +608,7 @@ export interface SMTPSettings {
 }
 
 export interface SMTPSettingsInput {
+  id?: number; // Optional - only present when updating existing SMTP
   provider: string;
   host: string;
   port: string | number;

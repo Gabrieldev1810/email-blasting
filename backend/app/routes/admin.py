@@ -2,7 +2,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 from flask import Blueprint, request, jsonify
-from app import db
+from app import db, limiter
 from app.models.user import User, UserRole
 from app.models.smtp_settings import SMTPSettings
 from app.middleware.auth import authenticated_required, admin_required
@@ -203,6 +203,7 @@ def assign_smtp_to_user(user_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @admin_bp.route('/smtp-settings', methods=['GET'])
+@limiter.exempt  # Exempt from rate limiting - this is a frequently accessed read-only endpoint
 @authenticated_required
 @admin_required
 def get_all_smtp_settings():

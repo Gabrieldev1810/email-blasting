@@ -18,6 +18,8 @@ import Reports from "./pages/Reports";
 import Contacts from "./pages/Contacts";
 import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
+import Notifications from "./pages/Notifications";
+import UserProfile from "./pages/UserProfile";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
@@ -198,6 +200,20 @@ const App = () => {
                         <Settings />
                       </AppLayout>
                     </AdminRoute>
+                  </ProtectedRoute>
+                } />
+                <Route path="/notifications" element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <Notifications />
+                    </AppLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/profile" element={
+                  <ProtectedRoute>
+                    <AppLayout>
+                      <UserProfile />
+                    </AppLayout>
                   </ProtectedRoute>
                 } />
                 <Route path="*" element={

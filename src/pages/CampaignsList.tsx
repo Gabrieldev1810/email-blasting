@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Eye, Plus, RefreshCw, Loader2, Trash2, Edit, Users, AlertTriangle, Download, BarChart3, Play } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { campaignsAPI, Campaign } from "@/lib/api";
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -30,23 +31,6 @@ import timezone from 'dayjs/plugin/timezone';
 // Configure dayjs with timezone support
 dayjs.extend(utc);
 dayjs.extend(timezone);
-
-interface Campaign {
-  id: number;
-  name: string;
-  subject: string;
-  status: string;
-  total_recipients: number;
-  emails_sent: number;
-  emails_opened: number;
-  emails_clicked: number;
-  emails_bounced: number;
-  open_rate: number;
-  click_rate: number;
-  bounce_rate: number;
-  created_at: string;
-  scheduled_at: string | null;
-}
 
 interface Contact {
   id: number;
@@ -77,18 +61,12 @@ export default function CampaignsList() {
 
   const fetchCampaigns = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await fetch('http://localhost:5001/api/campaigns', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const result = await response.json();
+      const response = await campaignsAPI.getCampaigns();
       
-      if (result.success) {
-        setCampaigns(result.campaigns);
+      if (response.success) {
+        setCampaigns(response.campaigns);
       } else {
-        throw new Error(result.error || 'Failed to fetch campaigns');
+        throw new Error('Failed to fetch campaigns');
       }
     } catch (error) {
       // Production: Error handled silently
@@ -230,18 +208,7 @@ export default function CampaignsList() {
     });
 
     try {
-      const response = await fetch(`http://localhost:5001/api/campaigns/${campaign.id}/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        },
-        body: JSON.stringify({
-          recipients: [] // Backend will use campaign's existing recipients
-        }),
-      });
-
-      const result = await response.json();
+      const result = await campaignsAPI.sendCampaign(campaign.id);
       
       if (result.success) {
         // Update local state based on send results
@@ -282,7 +249,7 @@ export default function CampaignsList() {
           )
         );
 
-        throw new Error(result.error || 'Failed to start campaign');
+        throw new Error(result.message || 'Failed to start campaign');
       }
     } catch (error) {
       // Update local state to failed on error

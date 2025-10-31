@@ -19,6 +19,7 @@ class Campaign(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    smtp_account_id = db.Column(db.Integer, db.ForeignKey('smtp_accounts.id'), nullable=True)  # Which SMTP to use
     
     # Campaign details
     name = db.Column(db.String(200), nullable=False)
@@ -53,6 +54,7 @@ class Campaign(db.Model):
     
     # Relationships
     recipients = db.relationship('CampaignRecipient', backref='campaign', lazy=True, cascade='all, delete-orphan')
+    smtp_account = db.relationship('SMTPAccount', back_populates='campaigns')
     
     def __init__(self, user_id, name, subject, **kwargs):
         self.user_id = user_id

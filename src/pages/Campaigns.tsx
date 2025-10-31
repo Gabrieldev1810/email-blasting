@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { Upload, Send, Save, Eye, Loader2, Settings, Info, Clock, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { campaignsAPI } from "@/lib/api";
 import WysiwygEditor from "../components/RichTextEditor/WysiwygEditor";
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -28,6 +29,8 @@ export default function Campaigns() {
   const [scheduledTime, setScheduledTime] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
   const [editCampaignId, setEditCampaignId] = useState<string | null>(null);
+  const [userSmtpAccounts, setUserSmtpAccounts] = useState<any[]>([]);
+  const [selectedSmtpId, setSelectedSmtpId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     campaignName: "",
     subject: "",
@@ -36,6 +39,64 @@ export default function Campaigns() {
     recipientList: "",
     emailBody: "",
   });
+
+  // Fetch user's assigned SMTP accounts on mount
+  useEffect(() => {
+    const fetchUserSmtpAccounts = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        console.log('Fetching SMTP accounts with token:', token ? 'Token exists' : 'No token');
+        
+        const response = await fetch('http://localhost:5001/api/my-smtp-accounts', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        
+        console.log('SMTP accounts response status:', response.status);
+        const data = await response.json();
+        console.log('SMTP accounts data:', data);
+        
+        if (data.success && data.smtp_accounts) {
+          console.log('SMTP accounts count:', data.smtp_accounts.length);
+          setUserSmtpAccounts(data.smtp_accounts);
+          
+          // Auto-select first SMTP account
+          if (data.smtp_accounts.length > 0) {
+            console.log('Auto-selecting SMTP ID:', data.smtp_accounts[0].id);
+            setSelectedSmtpId(data.smtp_accounts[0].id);
+            toast({
+              title: "SMTP Account Detected",
+              description: `Using: ${data.smtp_accounts[0].name}`,
+            });
+          } else {
+            console.log('No SMTP accounts found in response');
+            toast({
+              title: "No SMTP Account",
+              description: "No SMTP account assigned. Please contact administrator.",
+              variant: "destructive",
+            });
+          }
+        } else {
+          console.log('Invalid response:', data);
+          toast({
+            title: "No SMTP Account",
+            description: data.error || "No SMTP account assigned. Please contact administrator.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch SMTP accounts:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load SMTP accounts",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchUserSmtpAccounts();
+  }, []);
 
   // Check for edit mode on component mount
   useEffect(() => {
@@ -66,17 +127,10 @@ export default function Campaigns() {
   const fetchCampaignForEdit = async (campaignId: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:5001/api/campaigns/${campaignId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
-      });
-
-      const result = await response.json();
+      const response = await campaignsAPI.getCampaign(parseInt(campaignId));
       
-      if (result.success && result.campaign) {
-        const campaign = result.campaign;
+      if (response.success && response.campaign) {
+        const campaign = response.campaign;
         setFormData({
           campaignName: campaign.name || "",
           subject: campaign.subject || "",
@@ -115,7 +169,7 @@ export default function Campaigns() {
           description: `Editing campaign: ${campaign.name}${campaign.scheduled_at ? ' (Scheduled)' : ''}`,
         });
       } else {
-        throw new Error(result.error || 'Failed to load campaign');
+        throw new Error('Failed to load campaign');
       }
     } catch (error) {
       toast({
@@ -189,28 +243,30 @@ export default function Campaigns() {
         console.log('Scheduled at ISO (UTC):', scheduledAt);
       }
 
+      // Validate SMTP account is selected
+      if (!selectedSmtpId) {
+        toast({
+          title: "No SMTP Account",
+          description: "No SMTP account assigned. Please contact administrator.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (isEditMode && editCampaignId) {
         // Update existing campaign
-        const updateResponse = await fetch(`http://localhost:5001/api/campaigns/${editCampaignId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          },
-          body: JSON.stringify({
-            name: formData.campaignName,
-            subject: formData.subject,
-            sender_name: formData.senderName,
-            sender_email: formData.senderEmail,
-            html_content: formData.emailBody,
-            recipients: formData.recipientList,
-            scheduled_at: scheduledAt,
-          }),
+        const updateResponse = await campaignsAPI.updateCampaign(parseInt(editCampaignId), {
+          name: formData.campaignName,
+          subject: formData.subject,
+          sender_name: formData.senderName,
+          sender_email: formData.senderEmail,
+          email_content: formData.emailBody,
+          recipients: formData.recipientList,
+          scheduled_at: scheduledAt || undefined,
+          smtp_account_id: selectedSmtpId,
         });
-
-        const updateResult = await updateResponse.json();
         
-        if (updateResult.success) {
+        if (updateResponse.success) {
           toast({
             title: "Campaign Updated! ✏️",
             description: `Successfully updated campaign: ${formData.campaignName}`,
@@ -219,32 +275,24 @@ export default function Campaigns() {
           // Redirect back to campaigns list
           window.location.href = '/campaigns/list';
         } else {
-          throw new Error(updateResult.error || 'Failed to update campaign');
+          throw new Error('Failed to update campaign');
         }
       } else {
         // Create new campaign
-        const createResponse = await fetch('http://localhost:5001/api/campaigns', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          },
-          body: JSON.stringify({
-            name: formData.campaignName,
-            subject: formData.subject,
-            sender_name: formData.senderName,
-            sender_email: formData.senderEmail,
-            email_content: formData.emailBody,
-            recipients: formData.recipientList,
-            send_immediately: !isScheduled,
-            scheduled_at: scheduledAt
-          }),
+        const createResponse = await campaignsAPI.createCampaign({
+          name: formData.campaignName,
+          subject: formData.subject,
+          sender_name: formData.senderName,
+          sender_email: formData.senderEmail,
+          email_content: formData.emailBody,
+          recipients: formData.recipientList,
+          send_immediately: !isScheduled,
+          scheduled_at: scheduledAt || undefined,
+          smtp_account_id: selectedSmtpId,
         });
 
-        const createResult = await createResponse.json();
-        
-        if (!createResult.success) {
-          throw new Error(createResult.error || 'Failed to create campaign');
+        if (!createResponse.success) {
+          throw new Error('Failed to create campaign');
         }
 
         // Only send campaign immediately if not scheduled
@@ -252,16 +300,7 @@ export default function Campaigns() {
         
         if (!isScheduled) {
           // Send campaign immediately
-          const sendResponse = await fetch(`http://localhost:5001/api/campaigns/${createResult.campaign_id}/send`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-            },
-            body: JSON.stringify({}),
-          });
-
-          sendResult = await sendResponse.json();
+          sendResult = await campaignsAPI.sendCampaign(createResponse.campaign_id);
         }
         
         if (sendResult.success || isScheduled) {

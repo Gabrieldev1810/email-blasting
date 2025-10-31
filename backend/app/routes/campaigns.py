@@ -7,8 +7,10 @@ from app.models.campaign import Campaign, CampaignStatus, CampaignRecipient
 from app.models.contact import Contact, ContactStatus
 from app.models.smtp_settings import SMTPSettings
 from app.models.email_log import EmailLog, EmailStatus
+from app.models.notification import NotificationType
 from app.middleware.auth import authenticated_required, can_create_campaigns
 from app.services.email_tracking_service import EmailTrackingService
+from app.routes.notifications import create_notification
 from datetime import datetime
 from sqlalchemy import func
 import smtplib
@@ -90,7 +92,7 @@ def create_campaign():
         data = request.get_json()
         
         # Validate required fields
-        required_fields = ['name', 'subject', 'sender_email', 'email_content']
+        required_fields = ['name', 'subject', 'sender_email', 'email_content', 'smtp_account_id']
         for field in required_fields:
             if field not in data or not data[field]:
                 return jsonify({'success': False, 'error': f'Missing required field: {field}'}), 400
@@ -98,6 +100,35 @@ def create_campaign():
         # Get current user from middleware
         from flask import g
         current_user = g.current_user
+        
+        # Validate user has access to the selected SMTP account
+        from app.models.smtp_account import UserSMTPAssignment, SMTPAccount
+        smtp_account_id = data['smtp_account_id']
+        
+        assignment = UserSMTPAssignment.query.filter_by(
+            user_id=current_user.id,
+            smtp_account_id=smtp_account_id
+        ).first()
+        
+        if not assignment:
+            return jsonify({
+                'success': False,
+                'error': 'You do not have access to the selected SMTP account'
+            }), 403
+        
+        # Verify SMTP account is active and verified
+        smtp_account = SMTPAccount.query.get(smtp_account_id)
+        if not smtp_account or not smtp_account.is_active:
+            return jsonify({
+                'success': False,
+                'error': 'Selected SMTP account is not active'
+            }), 400
+        
+        if not smtp_account.is_verified:
+            return jsonify({
+                'success': False,
+                'error': 'Selected SMTP account is not verified. Please contact your administrator.'
+            }), 400
         
         # Handle scheduling
         scheduled_at = None
@@ -117,6 +148,7 @@ def create_campaign():
         # Create new campaign
         campaign = Campaign(
             user_id=current_user.id,
+            smtp_account_id=smtp_account_id,
             name=data['name'],
             subject=data['subject'],
             sender_name=data.get('sender_name', ''),
@@ -171,6 +203,35 @@ def create_campaign():
         
         db.session.commit()
         
+        # Create notification based on campaign status
+        if campaign.status == CampaignStatus.SCHEDULED:
+            create_notification(
+                user_id=current_user.id,
+                notification_type=NotificationType.CAMPAIGN_SCHEDULED,
+                title="Campaign Scheduled",
+                message=f"Your campaign '{campaign.name}' has been scheduled for {campaign.scheduled_at.strftime('%Y-%m-%d %H:%M')}",
+                campaign_id=campaign.id,
+                status="scheduled"
+            )
+        elif campaign.status == CampaignStatus.DRAFT:
+            create_notification(
+                user_id=current_user.id,
+                notification_type=NotificationType.CAMPAIGN_DRAFT,
+                title="Campaign Saved as Draft",
+                message=f"Your campaign '{campaign.name}' has been saved as a draft",
+                campaign_id=campaign.id,
+                status="draft"
+            )
+        else:
+            create_notification(
+                user_id=current_user.id,
+                notification_type=NotificationType.CAMPAIGN_CREATED,
+                title="Campaign Created",
+                message=f"Your campaign '{campaign.name}' has been created successfully",
+                campaign_id=campaign.id,
+                status="created"
+            )
+        
         return jsonify({
             'success': True,
             'message': 'Campaign created successfully',
@@ -215,6 +276,16 @@ def send_campaign(campaign_id):
         campaign.status = CampaignStatus.SENDING
         db.session.commit()
         
+        # Notify user that campaign is sending
+        create_notification(
+            user_id=campaign.user_id,
+            notification_type=NotificationType.CAMPAIGN_SENDING,
+            title="Campaign Sending",
+            message=f"Your campaign '{campaign.name}' is now being sent to {campaign.total_recipients} recipients",
+            campaign_id=campaign.id,
+            status="sending"
+        )
+        
         # Use EmailTrackingService for sending with full tracking capabilities
         success, message, results = EmailTrackingService.send_campaign_with_tracking(
             campaign_id=campaign_id,
@@ -226,8 +297,26 @@ def send_campaign(campaign_id):
             successful_sends = results.get('successful_sends', 0)
             if successful_sends == 0:
                 campaign.status = CampaignStatus.FAILED
+                # Notify failure
+                create_notification(
+                    user_id=campaign.user_id,
+                    notification_type=NotificationType.CAMPAIGN_FAILED,
+                    title="Campaign Failed",
+                    message=f"Campaign '{campaign.name}' failed to send. No emails were delivered successfully.",
+                    campaign_id=campaign.id,
+                    status="failed"
+                )
             else:
                 campaign.status = CampaignStatus.SENT
+                # Notify success
+                create_notification(
+                    user_id=campaign.user_id,
+                    notification_type=NotificationType.CAMPAIGN_SUCCESS,
+                    title="Campaign Sent Successfully",
+                    message=f"Campaign '{campaign.name}' was sent successfully to {successful_sends} out of {results.get('total_recipients', 0)} recipients",
+                    campaign_id=campaign.id,
+                    status="success"
+                )
             
             # Set timestamps
             from datetime import datetime
@@ -245,6 +334,15 @@ def send_campaign(campaign_id):
         else:
             campaign.status = CampaignStatus.FAILED
             db.session.commit()
+            # Notify failure
+            create_notification(
+                user_id=campaign.user_id,
+                notification_type=NotificationType.CAMPAIGN_FAILED,
+                title="Campaign Failed",
+                message=f"Campaign '{campaign.name}' failed: {message}",
+                campaign_id=campaign.id,
+                status="failed"
+            )
             return jsonify({'success': False, 'error': message}), 500
         
     except Exception as e:

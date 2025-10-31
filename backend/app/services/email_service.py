@@ -38,39 +38,23 @@ class EmailService:
             if campaign.status not in [CampaignStatus.DRAFT, CampaignStatus.SCHEDULED]:
                 return False, f"Campaign cannot be sent - status is {campaign.status.value}", {}
             
-            # Try to get SMTP settings (newer table)
-            smtp_settings = SMTPSettings.query.filter_by(
-                user_id=user_id,
-                is_configured=True
-            ).first()
+            # Get the SMTP account assigned to this campaign
+            from app.models.smtp_account import SMTPAccount
             
-            # Fall back to SMTPConfig if SMTPSettings not found
-            smtp_config = None
-            if smtp_settings:
-                # Convert SMTPSettings to SMTPConfig-like object for compatibility
-                logger.info(f"Using SMTPSettings for user {user_id}")
-                smtp_config = smtp_settings
-            else:
-                # Try the old SMTPConfig table
-                smtp_config = SMTPConfig.query.filter_by(
-                    user_id=user_id, 
-                    is_active=True, 
-                    is_default=True
-                ).first()
-                logger.info(f"Using SMTPConfig for user {user_id}")
+            if not campaign.smtp_account_id:
+                return False, "No SMTP account assigned to this campaign. Please select an SMTP account.", {}
             
-            if not smtp_config:
-                return False, "No active SMTP configuration found", {}
+            smtp_account = SMTPAccount.query.get(campaign.smtp_account_id)
+            if not smtp_account:
+                return False, "SMTP account not found", {}
             
-            # Check SMTP configuration (only SMTPConfig has this method)
-            if hasattr(smtp_config, 'can_send_email'):
-                can_send, smtp_message = smtp_config.can_send_email()
-                if not can_send:
-                    return False, f"SMTP error: {smtp_message}", {}
-            elif isinstance(smtp_config, SMTPSettings):
-                # For SMTPSettings, check if it's configured
-                if not smtp_config.is_configured:
-                    return False, "SMTP configuration is not properly configured", {}
+            if not smtp_account.is_active:
+                return False, "SMTP account is not active", {}
+            
+            if not smtp_account.is_verified:
+                return False, "SMTP account is not verified. Please contact your administrator.", {}
+            
+            logger.info(f"Using SMTP account '{smtp_account.name}' (ID: {smtp_account.id}) for campaign {campaign_id}")
             
             # Get campaign recipients
             recipients = EmailService._get_campaign_recipients(campaign)
@@ -84,7 +68,7 @@ class EmailService:
             db.session.commit()
             
             # Send emails
-            results = EmailService._send_campaign_emails(campaign, recipients, smtp_config)
+            results = EmailService._send_campaign_emails(campaign, recipients, smtp_account)
             
             # Update campaign with results
             EmailService._update_campaign_results(campaign, results)
@@ -279,13 +263,15 @@ class EmailService:
     def _send_campaign_emails(
         campaign: Campaign, 
         recipients: List[Dict], 
-        smtp_config: Union[SMTPConfig, SMTPSettings]
+        smtp_account
     ) -> List[Dict]:
         """Send emails to all campaign recipients."""
+        from app.models.smtp_account import SMTPAccount
+        
         results = []
         
         try:
-            with SMTPService(smtp_config) as smtp_service:
+            with SMTPService(smtp_account) as smtp_service:
                 results = smtp_service.bulk_send_emails(
                     recipients=recipients,
                     subject=campaign.subject,
@@ -303,9 +289,10 @@ class EmailService:
                         if result['success']:
                             recipient_record.email_sent = True
                             recipient_record.sent_at = datetime.utcnow()
-                            # Only increment if method exists (SMTPConfig has it)
-                            if hasattr(smtp_config, 'increment_email_count'):
-                                smtp_config.increment_email_count()
+                            # Update SMTP account usage
+                            smtp_account.total_emails_sent += 1
+                            smtp_account.emails_sent_today += 1
+                            smtp_account.last_used_at = datetime.utcnow()
                         else:
                             recipient_record.email_failed = True
                             recipient_record.error_message = result.get('error', 'Unknown error')

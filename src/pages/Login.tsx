@@ -28,7 +28,7 @@ export default function Login() {
       const result = await authAPI.login(credentials);
 
       // Store authentication data using utility function
-      authUtils.storeAuth(result.access_token, result.user);
+      authUtils.storeAuth(result.access_token, result.user, result.refresh_token);
       
       toast({
         title: "Login Successful",

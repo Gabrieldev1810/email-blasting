@@ -7,17 +7,20 @@ from email import encoders
 from datetime import datetime
 import logging
 from typing import Optional, List, Tuple, Union
-from app.models.smtp_config import SMTPConfig
-from app.models.smtp_settings import SMTPSettings
 
 logger = logging.getLogger(__name__)
 
 class SMTPService:
     """Service for handling SMTP email sending operations."""
     
-    def __init__(self, smtp_config: Union[SMTPConfig, SMTPSettings]):
-        """Initialize SMTP service with configuration."""
-        self.config = smtp_config
+    def __init__(self, smtp_account):
+        """Initialize SMTP service with SMTP account configuration."""
+        from app.models.smtp_account import SMTPAccount
+        
+        if not isinstance(smtp_account, SMTPAccount):
+            raise ValueError("SMTP Service requires an SMTPAccount instance")
+        
+        self.config = smtp_account
         self.server = None
     
     def connect(self) -> Tuple[bool, str]:
@@ -40,7 +43,7 @@ class SMTPService:
                     self.server.starttls(context=context)
             
             # Authenticate with the server
-            password = self.config.get_password()
+            password = self.config.password
             if not password:
                 return False, "No password configured"
             

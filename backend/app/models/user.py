@@ -23,6 +23,8 @@ class User(db.Model):
     last_name = db.Column(db.String(50))
     role = db.Column(db.Enum(UserRole), default=UserRole.USER, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
+    department = db.Column(db.String(100), nullable=True)
+    position = db.Column(db.String(100), nullable=True)
     
     # SMTP Configuration Assignment
     smtp_settings_id = db.Column(db.Integer, db.ForeignKey('smtp_settings.id'), nullable=True)
@@ -148,6 +150,8 @@ class User(db.Model):
             'first_name': self.first_name,
             'last_name': self.last_name,
             'full_name': self.full_name,
+            'department': self.department,
+            'position': self.position,
             'company': self.company,
             'timezone': self.timezone,
             'is_active': self.is_active,

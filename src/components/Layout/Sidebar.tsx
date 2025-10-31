@@ -15,6 +15,7 @@ const navigation = [
   { name: "View Campaigns", href: "/campaigns/list", icon: List },
   { name: "Reports", href: "/reports", icon: FileBarChart },
   { name: "Contacts", href: "/contacts", icon: Users },
+  { name: "Profile", href: "/profile", icon: User },
   { name: "Admin Panel", href: "/admin", icon: Shield },
   { name: "Settings", href: "/settings", icon: Settings },
 ];

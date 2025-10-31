@@ -30,40 +30,35 @@ export default function Dashboard() {
     fetchDashboardData();
   }, []);
 
-  // Calculate dynamic data from API response
+  // Calculate dynamic data from API response - aligned with backend
   const totalSentEmailsData = dashboardData ? {
     title: "Total Sent Emails",
     value: dashboardData.total_emails_sent?.toLocaleString() || "0",
     icon: Mail,
-    trend: dashboardData.email_trend || null,
   } : null;
 
   const columnChartData = dashboardData ? [
     { label: "Sent", value: dashboardData.total_emails_sent || 0, color: "#3b82f6" },
-    { label: "Delivered", value: dashboardData.total_delivered || 0, color: "#10b981" },
-    { label: "Opened", value: dashboardData.total_opened || 0, color: "#f59e0b" },
-    { label: "Clicked", value: dashboardData.total_clicked || 0, color: "#8b5cf6" },
-    { label: "Bounced", value: dashboardData.total_bounced || 0, color: "#ef4444" },
+    { label: "Opened", value: dashboardData.total_emails_opened || 0, color: "#f59e0b" },
+    { label: "Clicked", value: dashboardData.total_emails_clicked || 0, color: "#8b5cf6" },
+    { label: "Bounced", value: dashboardData.total_emails_bounced || 0, color: "#ef4444" },
   ] : [];
 
   const stats = dashboardData ? [
     {
-      title: "Active Campaigns",
-      value: dashboardData.active_campaigns?.toString() || "0",
+      title: "Total Campaigns",
+      value: dashboardData.total_campaigns?.toString() || "0",
       icon: Send,
-      trend: dashboardData.campaigns_trend || null,
-    },
-    {
-      title: "Delivery Rate",
-      value: `${(dashboardData.delivery_rate || 0).toFixed(1)}%`,
-      icon: TrendingUp,
-      trend: dashboardData.delivery_trend || null,
     },
     {
       title: "Open Rate", 
-      value: `${(dashboardData.open_rate || 0).toFixed(1)}%`,
+      value: `${(dashboardData.email_open_rate || 0).toFixed(1)}%`,
       icon: Eye,
-      trend: dashboardData.open_trend || null,
+    },
+    {
+      title: "Click Rate",
+      value: `${(dashboardData.email_click_rate || 0).toFixed(1)}%`,
+      icon: TrendingUp,
     },
   ] : [];
 

@@ -1,8 +1,10 @@
-from flask import Flask
+from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 # from flask_mail import Mail
 from config import config
 import os
@@ -12,6 +14,11 @@ db = SQLAlchemy()
 migrate = Migrate()
 jwt = JWTManager()
 cors = CORS()
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["2000 per day", "500 per hour"],  # Increased for development with notifications
+    storage_uri="memory://"  # Use Redis in production: "redis://localhost:6379"
+)
 # mail = Mail()
 
 def create_app(config_name=None):
@@ -59,15 +66,43 @@ def create_app(config_name=None):
     jwt.init_app(app)
     print("JWT initialized")
     
+    # JWT error handlers
+    @jwt.expired_token_loader
+    def expired_token_callback(jwt_header, jwt_payload):
+        print(f"Expired token detected: {jwt_payload}")
+        return {'success': False, 'error': 'Token has expired', 'msg': 'Token has expired'}, 401
+    
+    @jwt.invalid_token_loader
+    def invalid_token_callback(error):
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Invalid token detected - Error: {error}")
+        logger.error(f"Request path: {request.path if request else 'Unknown'}")
+        logger.error(f"Request headers: {dict(request.headers) if request else 'Unknown'}")
+        print(f"Invalid token detected: {error}")
+        return {'success': False, 'error': 'Invalid token', 'msg': str(error)}, 422
+    
+    @jwt.unauthorized_loader
+    def unauthorized_callback(error):
+        print(f"Unauthorized access: {error}")
+        return {'success': False, 'error': 'Authorization required', 'msg': str(error)}, 401
+    
+    @jwt.revoked_token_loader
+    def revoked_token_callback(jwt_header, jwt_payload):
+        print(f"Revoked token detected: {jwt_payload}")
+        return {'success': False, 'error': 'Token has been revoked', 'msg': 'Token has been revoked'}, 401
+    
+    print("Initializing rate limiter...")
+    limiter.init_app(app)
+    print("Rate limiter initialized")
+    
     # Configure CORS - permissive for local development
     cors.init_app(app, 
-                  origins=["http://localhost:8080", "http://localhost:5173", "http://localhost:3000", "http://localhost:8081", "http://127.0.0.1:5173", "http://127.0.0.1:3000", "http://127.0.0.1:8081"],
+                  resources={r"/api/*": {"origins": "*"}},
                   supports_credentials=True,
                   allow_headers=['Content-Type', 'Authorization', 'Origin', 'Accept', 'X-Requested-With'],
                   methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-                  expose_headers=['Authorization'],
-                  send_wildcard=False,
-                  vary_header=True)
+                  expose_headers=['Authorization'])
     
     # mail.init_app(app)
     
@@ -80,17 +115,22 @@ def create_app(config_name=None):
     from app.models import user, contact, campaign, smtp_config, smtp_settings, email_log
     
     # Register blueprints
-    from app.routes import auth, campaigns, contacts, settings, smtp_settings, smtp_configs, admin, dashboard, tracking
+    from app.routes import auth, campaigns, contacts, settings, admin, dashboard, tracking
+    from app.routes import smtp_admin, smtp_user  # New SMTP management routes
+    from app.routes import notifications  # Notifications routes
     
     app.register_blueprint(auth.bp, url_prefix='/api/auth')
     app.register_blueprint(campaigns.bp, url_prefix='/api/campaigns')
     app.register_blueprint(contacts.bp, url_prefix='/api/contacts')
     app.register_blueprint(settings.bp, url_prefix='/api/settings')
-    app.register_blueprint(smtp_settings.settings_bp, url_prefix='/api/settings')
-    app.register_blueprint(smtp_configs.smtp_config_bp, url_prefix='/api')
     app.register_blueprint(admin.admin_bp, url_prefix='/api/admin')
     app.register_blueprint(dashboard.bp, url_prefix='/api/dashboard')
     app.register_blueprint(tracking.tracking_bp)
+    app.register_blueprint(notifications.notifications_bp, url_prefix='/api')
+    
+    # New SMTP account management routes
+    app.register_blueprint(smtp_admin.smtp_admin_bp, url_prefix='/api/admin')
+    app.register_blueprint(smtp_user.smtp_user_bp, url_prefix='/api')
     
     # Register error handlers
     from app.utils.error_handlers import register_error_handlers

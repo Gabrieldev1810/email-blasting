@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Table, 
   TableBody, 
@@ -53,6 +54,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { authUtils } from "@/lib/api";
+import SMTPManagement from "./SMTPManagement";
 
 interface User {
   id: number;
@@ -78,11 +80,27 @@ interface SMTPSettings {
   sender_email: string;
 }
 
+interface SMTPAccount {
+  id: number;
+  name: string;
+  provider: string;
+  from_email: string;
+  from_name: string;
+  is_active: boolean;
+  is_verified: boolean;
+}
+
+interface UserSMTPAssignments {
+  [userId: number]: SMTPAccount[];
+}
+
 export default function Admin() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [smtpSettings, setSMTPSettings] = useState<SMTPSettings[]>([]);
+  const [smtpAccounts, setSMTPAccounts] = useState<SMTPAccount[]>([]);
+  const [userAssignments, setUserAssignments] = useState<UserSMTPAssignments>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [createUserOpen, setCreateUserOpen] = useState(false);
@@ -96,13 +114,18 @@ export default function Admin() {
     newRole: string | null;
     userName: string | null;
   }>({ open: false, userId: null, newRole: null, userName: null });
+  const [profileRequests, setProfileRequests] = useState<any[]>([]);
+  const [selectedRequest, setSelectedRequest] = useState<any | null>(null);
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+  const [updatingProfile, setUpdatingProfile] = useState(false);
   const [newUser, setNewUser] = useState({
     email: '',
     password: '',
     first_name: '',
     last_name: '',
     role: 'MANAGER',
-    smtp_settings_id: 'none'
+    smtp_settings_id: 'none',
+    smtp_account_ids: [] as number[]
   });
 
   // Check authentication on component mount
@@ -142,10 +165,20 @@ export default function Admin() {
       // Now fetch data after authentication is confirmed
       await fetchUsers();
       await fetchSMTPSettings();
+      await fetchSMTPAccounts();
+      await fetchProfileRequests();
     };
 
     checkAuth();
   }, [navigate, toast]);
+
+  // Fetch user assignments when users change
+  useEffect(() => {
+    if (users.length > 0) {
+      const userIds = users.map(u => u.id);
+      fetchUserAssignments(userIds);
+    }
+  }, [users]);
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -224,6 +257,72 @@ export default function Admin() {
     }
   };
 
+  const fetchSMTPAccounts = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('http://localhost:5001/api/admin/smtp-accounts', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setSMTPAccounts(result.smtp_accounts || []);
+      }
+    } catch (error) {
+      console.error('Error fetching SMTP accounts:', error);
+    }
+  };
+
+  const fetchProfileRequests = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch('http://localhost:5001/api/notifications?type=profile_update_request&per_page=100', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        setProfileRequests(result.notifications || []);
+      }
+    } catch (error) {
+      console.error('Error fetching profile requests:', error);
+    }
+  };
+
+  const fetchUserAssignments = async (userIds: number[]) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const assignments: UserSMTPAssignments = {};
+      
+      for (const userId of userIds) {
+        const response = await fetch(`http://localhost:5001/api/admin/users/${userId}/smtp-accounts`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          assignments[userId] = result.smtp_accounts || [];
+        }
+      }
+      
+      setUserAssignments(assignments);
+    } catch (error) {
+      console.error('Error fetching user assignments:', error);
+    }
+  };
+
   const createUser = async () => {
     try {
       const userData = {
@@ -243,6 +342,26 @@ export default function Admin() {
       const result = await response.json();
 
       if (result.success) {
+        const userId = result.user.id;
+        
+        // Assign SMTP accounts if selected
+        if (newUser.smtp_account_ids.length > 0) {
+          for (const smtpId of newUser.smtp_account_ids) {
+            try {
+              await fetch(`http://localhost:5001/api/admin/users/${userId}/smtp-accounts`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                },
+                body: JSON.stringify({ smtp_account_id: smtpId })
+              });
+            } catch (error) {
+              console.error(`Failed to assign SMTP ${smtpId}:`, error);
+            }
+          }
+        }
+        
         toast({
           title: "User Created",
           description: `${result.user.first_name} ${result.user.last_name} has been created successfully.`,
@@ -255,10 +374,12 @@ export default function Admin() {
           first_name: '',
           last_name: '',
           role: 'MANAGER',
-          smtp_settings_id: 'none'
+          smtp_settings_id: 'none',
+          smtp_account_ids: []
         });
         
         await fetchUsers();
+        await fetchUserAssignments([userId]);
       } else {
         throw new Error(result.error || 'Failed to create user');
       }
@@ -476,17 +597,44 @@ export default function Admin() {
           </h1>
           <p className="text-muted-foreground">Manage users, roles, and SMTP assignments</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => {fetchUsers(); fetchSMTPSettings();}}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </Button>
-          <Button onClick={() => setCreateUserOpen(true)}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Create User
-          </Button>
-        </div>
       </div>
+
+      <Tabs defaultValue="users" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="users" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            User Management
+          </TabsTrigger>
+          <TabsTrigger value="profile-requests" className="flex items-center gap-2">
+            <Edit className="h-4 w-4" />
+            Profile Requests
+            {profileRequests.filter(r => r.status === 'pending').length > 0 && (
+              <Badge variant="destructive" className="ml-1">
+                {profileRequests.filter(r => r.status === 'pending').length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="smtp" className="flex items-center gap-2">
+            <Mail className="h-4 w-4" />
+            SMTP Accounts
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users" className="space-y-6">
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => {
+              fetchUsers();
+              fetchSMTPSettings();
+              fetchSMTPAccounts();
+            }}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
+            <Button onClick={() => setCreateUserOpen(true)}>
+              <UserPlus className="mr-2 h-4 w-4" />
+              Create User
+            </Button>
+          </div>
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4">
@@ -623,23 +771,47 @@ export default function Admin() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Select
-                          value={user.smtp_settings_id?.toString() || "none"}
-                          onValueChange={(value) => assignSMTP(user.id, value === "none" ? null : parseInt(value))}
-                        >
-                          <SelectTrigger className="w-[200px]">
-                            <SelectValue placeholder="Select SMTP..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">No SMTP</SelectItem>
-                            {smtpSettings.map((smtp) => (
-                              <SelectItem key={smtp.id} value={smtp.id.toString()}>
-                                {smtp.sender_email} ({smtp.provider})
-                              </SelectItem>
+                      <div className="space-y-2">
+                        {/* New SMTP Accounts (from SMTP Management) */}
+                        {userAssignments[user.id]?.length > 0 ? (
+                          <div className="space-y-1">
+                            {userAssignments[user.id].map((smtp) => (
+                              <div key={smtp.id} className="flex items-center gap-2">
+                                <Badge variant="default" className="text-xs">
+                                  <Mail className="h-3 w-3 mr-1" />
+                                  {smtp.name}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  {smtp.from_email}
+                                </span>
+                              </div>
                             ))}
-                          </SelectContent>
-                        </Select>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={user.smtp_settings_id?.toString() || "none"}
+                              onValueChange={(value) => assignSMTP(user.id, value === "none" ? null : parseInt(value))}
+                            >
+                              <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="No SMTP assigned" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">No SMTP (Legacy)</SelectItem>
+                                {smtpSettings.map((smtp) => (
+                                  <SelectItem key={smtp.id} value={smtp.id.toString()}>
+                                    {smtp.sender_email} ({smtp.provider})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                        {userAssignments[user.id]?.length > 0 && (
+                          <div className="text-xs text-muted-foreground">
+                            Managed via SMTP Accounts tab
+                          </div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>{user.total_campaigns}</TableCell>
@@ -751,23 +923,73 @@ export default function Admin() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="smtp_config">SMTP Configuration</Label>
+              <Label htmlFor="smtp_accounts">Assign SMTP Accounts</Label>
               <Select 
-                value={newUser.smtp_settings_id || "none"} 
-                onValueChange={(value) => setNewUser({...newUser, smtp_settings_id: value === "none" ? "" : value})}
+                value={newUser.smtp_account_ids.length > 0 ? "selected" : "none"} 
+                onValueChange={(value) => {
+                  // This is just for display purposes, actual selection done via checkboxes in dropdown
+                }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select SMTP configuration..." />
+                  <SelectValue>
+                    {newUser.smtp_account_ids.length === 0 
+                      ? "Select SMTP accounts..." 
+                      : `${newUser.smtp_account_ids.length} account${newUser.smtp_account_ids.length !== 1 ? 's' : ''} selected`
+                    }
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No SMTP (Use Global)</SelectItem>
-                  {smtpSettings.map((smtp) => (
-                    <SelectItem key={smtp.id} value={smtp.id.toString()}>
-                      {smtp.sender_email} ({smtp.provider})
-                    </SelectItem>
-                  ))}
+                  {smtpAccounts.length === 0 ? (
+                    <div className="p-3 text-sm text-muted-foreground text-center">
+                      No SMTP accounts available
+                    </div>
+                  ) : (
+                    <div className="max-h-64 overflow-y-auto p-2">
+                      {smtpAccounts
+                        .filter(smtp => smtp.is_active && smtp.is_verified)
+                        .map((smtp) => (
+                          <label 
+                            key={smtp.id} 
+                            className="flex items-center space-x-2 p-2 hover:bg-muted rounded cursor-pointer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={newUser.smtp_account_ids.includes(smtp.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setNewUser({
+                                    ...newUser, 
+                                    smtp_account_ids: [...newUser.smtp_account_ids, smtp.id]
+                                  });
+                                } else {
+                                  setNewUser({
+                                    ...newUser, 
+                                    smtp_account_ids: newUser.smtp_account_ids.filter(id => id !== smtp.id)
+                                  });
+                                }
+                              }}
+                              className="h-4 w-4 rounded border-gray-300"
+                            />
+                            <div className="flex-1 flex items-center justify-between">
+                              <span className="text-sm font-medium">{smtp.name}</span>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {smtp.provider}
+                                </Badge>
+                                <span className="text-xs text-muted-foreground">{smtp.from_email}</span>
+                              </div>
+                            </div>
+                          </label>
+                        ))
+                      }
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Select SMTP accounts this user can use for campaigns
+              </p>
             </div>
           </div>
           <DialogFooter>
@@ -860,6 +1082,185 @@ export default function Admin() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+        </TabsContent>
+
+        <TabsContent value="profile-requests" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-semibold">Profile Update Requests</h3>
+              <p className="text-sm text-muted-foreground">Review and process user profile update requests</p>
+            </div>
+            <Button variant="outline" onClick={fetchProfileRequests}>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
+
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Request</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {profileRequests.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        No profile update requests found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    profileRequests.map((request) => (
+                      <TableRow key={request.id}>
+                        <TableCell>
+                          <div className="font-medium">{request.title?.replace('Profile Update Request from ', '')}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="max-w-md truncate text-sm text-muted-foreground">
+                            {request.message?.split('\n')[0]}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm text-muted-foreground">
+                            {new Date(request.created_at).toLocaleDateString()}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={request.status === 'pending' ? 'default' : 'secondary'}
+                          >
+                            {request.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setSelectedRequest(request);
+                              setUpdateDialogOpen(true);
+                            }}
+                            disabled={request.status !== 'pending'}
+                          >
+                            <Edit className="mr-2 h-4 w-4" />
+                            Review
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="smtp">
+          <SMTPManagement 
+            onAssignmentChange={() => {
+              // Refresh user assignments when SMTP assignments change
+              if (users.length > 0) {
+                const userIds = users.map(u => u.id);
+                fetchUserAssignments(userIds);
+                toast({
+                  title: "Assignments Updated",
+                  description: "User Management table has been refreshed",
+                });
+              }
+            }}
+          />
+        </TabsContent>
+      </Tabs>
+
+      {/* Profile Update Dialog */}
+      <Dialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Review Profile Update Request</DialogTitle>
+            <DialogDescription>
+              Review the user's request and update their profile information.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRequest && (
+            <div className="grid gap-4 py-4">
+              <div className="rounded-lg bg-muted p-4 space-y-2">
+                <p className="font-medium">Request Details:</p>
+                <p className="text-sm whitespace-pre-wrap">{selectedRequest.message}</p>
+              </div>
+              
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Update User Profile:</p>
+                <p className="text-xs text-muted-foreground">
+                  You'll need to manually update the user's profile from the User Management tab after reviewing this request.
+                </p>
+              </div>
+
+              <div className="rounded-lg border p-4 space-y-2">
+                <p className="text-sm font-medium">Quick Actions:</p>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      try {
+                        const token = localStorage.getItem('access_token');
+                        await fetch(`http://localhost:5001/api/notifications/${selectedRequest.id}/read`, {
+                          method: 'POST',
+                          headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                          }
+                        });
+                        
+                        setProfileRequests(prev => 
+                          prev.map(r => r.id === selectedRequest.id ? { ...r, status: 'completed' } : r)
+                        );
+                        
+                        toast({
+                          title: "Request Marked Complete",
+                          description: "The profile update request has been marked as complete.",
+                        });
+                        
+                        setUpdateDialogOpen(false);
+                      } catch (error) {
+                        toast({
+                          title: "Error",
+                          description: "Failed to mark request as complete",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                  >
+                    Mark as Complete
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setUpdateDialogOpen(false);
+                      // Switch to users tab
+                      const usersTab = document.querySelector('[value="users"]') as HTMLElement;
+                      usersTab?.click();
+                    }}
+                  >
+                    Go to User Management
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUpdateDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

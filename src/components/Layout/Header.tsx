@@ -45,7 +45,7 @@ export const Header: React.FC<HeaderProps> = ({ className = "" }) => {
   };
 
   const handleProfile = () => {
-    navigate('/settings');
+    navigate('/profile');
   };
 
   const getUserInitials = (user: any) => {
@@ -62,7 +62,8 @@ export const Header: React.FC<HeaderProps> = ({ className = "" }) => {
       : user.name || user.email || "User";
   };
 
-  const formatTimeAgo = (date: Date) => {
+  const formatTimeAgo = (dateString: string | Date) => {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
     
@@ -130,21 +131,24 @@ export const Header: React.FC<HeaderProps> = ({ className = "" }) => {
               notifications.slice(0, 5).map((notification) => (
                 <DropdownMenuItem 
                   key={notification.id}
-                  className={`flex flex-col items-start p-4 cursor-pointer ${!notification.read ? 'bg-accent/50' : ''}`}
+                  className={`flex flex-col items-start p-4 cursor-pointer ${!notification.is_read ? 'bg-accent/50' : ''}`}
                   onClick={() => markAsRead(notification.id)}
                 >
                   <div className="font-medium">{notification.title}</div>
                   <div className="text-sm text-muted-foreground">{notification.message}</div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {formatTimeAgo(notification.timestamp)}
+                    {formatTimeAgo(notification.created_at)}
                   </div>
                 </DropdownMenuItem>
               ))
             )}
-            {notifications.length > 5 && (
+            {notifications.length > 0 && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-center">
+                <DropdownMenuItem 
+                  className="text-center cursor-pointer"
+                  onClick={() => navigate('/notifications')}
+                >
                   <span className="w-full">View all notifications</span>
                 </DropdownMenuItem>
               </>
