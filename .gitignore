@@ -9,13 +9,15 @@ dist-ssr
 build
 
 # Environment files
-.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-.env.production.example
 *.env.backup
+
+# Keep these files for deployment
+# .env (local development)
+# .env.production (deployment)
 
 # Logs
 logs

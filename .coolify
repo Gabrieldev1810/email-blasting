@@ -1,4 +1,0 @@
-# Force Coolify to use Dockerfile instead of Nixpacks
-dockerfile=Dockerfile
-buildpack=false
-nixpacks=false

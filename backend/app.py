@@ -3,7 +3,12 @@ import os
 import atexit
 
 # Load environment variables
-load_dotenv()
+# In production, load from .env.production, otherwise from .env
+env_file = '.env.production' if os.environ.get('FLASK_ENV') == 'production' else '.env'
+if os.path.exists(f'../{env_file}'):
+    load_dotenv(f'../{env_file}')
+else:
+    load_dotenv()  # fallback to default .env loading
 
 print("Loading Flask application...")
 

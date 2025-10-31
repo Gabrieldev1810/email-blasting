@@ -1,17 +1,30 @@
-# Node modules
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+node_modules# Node modules
 
-# Build output (don't ignore dist/ as we need it for production)
-build/
+.gitnode_modules/
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
+.envnpm-debug.log*
+
+.env.localyarn-debug.log*
+
+.env.developmentyarn-error.log*
+
+dist
+
+*.log# Build output (don't ignore dist/ as we need it for production)
+
+.vscodebuild/
+
+.idea
+
+README.md# IDE
+
+LICENSE.vscode/
+
+*.md.idea/
+
+.DS_Store*.swp
+
+Thumbs.db*.swo
 
 # Environment
 .env

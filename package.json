@@ -12,7 +12,7 @@
     "start": "chmod +x ./start.sh && ./start.sh",
     "setup": "python3 setup_admin.py",
     "setup:admin": "python3 setup_admin.py",
-    "postbuild": "echo 'Build completed. Frontend built to dist/' && ls -la dist/",
+    "postbuild": "echo 'Build completed. Frontend built to dist/' && dir dist",
     "prestart": "echo 'Starting production server...' && echo 'Backend dependencies:' && cd backend && pip list | head -5 && cd .."
   },
   "dependencies": {
@@ -87,7 +87,7 @@
   "devDependencies": {
     "@eslint/js": "^9.32.0",
     "@tailwindcss/typography": "^0.5.16",
-    "@types/node": "^22.16.5",
+    "@types/node": "^22.18.13",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react-swc": "^3.11.0",
