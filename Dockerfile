@@ -13,14 +13,17 @@ RUN apt-get update && apt-get install -y \
 # Create app directory
 WORKDIR /app
 
-# Copy package files and install dependencies (including dev deps for building)
-COPY package*.json ./
+# Copy application source first
+COPY . .
+
+# Debug: Check if package.json exists
+RUN echo "=== Checking package.json existence ===" && \
+    ls -la package*.json && \
+    echo "=== Content check ===" && \
+    head -5 package.json
 
 # Install dependencies - use npm install for compatibility
 RUN npm cache clean --force && npm install
-
-# Copy application source
-COPY . .
 
 # Create Python virtual environment and install dependencies
 RUN python3 -m venv /app/venv
@@ -31,14 +34,8 @@ RUN /app/venv/bin/pip install --no-cache-dir -r backend/requirements.txt
 ENV PATH="/app/venv/bin:/usr/local/bin:$PATH"
 ENV NODE_PATH="/usr/local/lib/node_modules"
 
-# Debug: List files to ensure everything is copied correctly
-RUN echo "=== Debugging: Listing workspace contents ===" && \
-    ls -la && \
-    echo "=== Checking src directory ===" && \
-    ls -la src/ && \
-    echo "=== Checking if required files exist ===" && \
-    ls -la index.html tailwind.config.ts vite.config.ts && \
-    echo "=== Node and npm versions ===" && \
+# Node and npm version info for debugging
+RUN echo "=== Node and npm versions ===" && \
     node --version && npm --version
 
 # Build frontend
