@@ -11,4 +11,5 @@ services:
       - FLASK_ENV=production
       - PORT=3001
       - DATABASE_URL=postgresql://postgresql-database-hgwks4o884cgo8wo8ok84ock:K8A1EuplrcGvVwi577BihGvTkKXbWhe6WDA5OJY6sE7XGd4GXCmdaeUTNddPpNRl@postgresql-database-hgwks4o884cgo8wo8ok84ock:5432/postgresql-database-hgwks4o884cgo8wo8ok84ock
-    command: ["npm", "start"]
+      - SETUP_ADMIN_EMAIL=gab.duano101898@gmail.com
+      - SETUP_ADMIN_PASSWORD=Gabriel_101898@@
