@@ -112,11 +112,40 @@ app.get('*', (req, res) => {
 // Start the backend process
 const backendProcess = startBackend();
 
+// Run admin setup on first startup
+const runAdminSetup = () => {
+  console.log('🎯 Attempting initial admin setup...');
+  const setupProcess = spawn('python3', [
+    join(__dirname, 'setup_admin.py')
+  ], {
+    stdio: ['pipe', 'pipe', 'pipe']
+  });
+
+  setupProcess.stdout.on('data', (data) => {
+    console.log(`Setup: ${data.toString()}`);
+  });
+
+  setupProcess.stderr.on('data', (data) => {
+    console.log(`Setup Error: ${data.toString()}`);
+  });
+
+  setupProcess.on('close', (code) => {
+    if (code === 0) {
+      console.log('✅ Admin setup completed successfully');
+    } else {
+      console.log(`⚠️ Admin setup exited with code ${code} (may already be completed)`);
+    }
+  });
+};
+
 // Start the Express server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📱 Frontend: http://localhost:${PORT}`);
   console.log(`🔧 Backend API: http://localhost:5001`);
+  
+  // Run admin setup after a delay to ensure backend is ready
+  setTimeout(runAdminSetup, 3000);
 });
 
 // Graceful shutdown

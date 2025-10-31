@@ -1,36 +1,42 @@
-# Multi-stage build for frontend
-FROM node:20-alpine AS builder
+# Production Dockerfile for Beacon Blast Email Platform
+FROM node:20-slim
 
-# Set working directory
+# Install system dependencies including Python
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    curl \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files and install Node.js dependencies
 COPY package*.json ./
-
-# Install dependencies
 RUN npm ci --only=production
 
-# Copy source code
+# Copy application source
 COPY . .
 
-# Build the application
+# Install Python dependencies
+RUN cd backend && pip3 install --no-cache-dir -r requirements.txt
+
+# Build frontend
 RUN npm run build
 
-# Production stage with nginx
-FROM nginx:alpine
-
-# Copy built assets from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Create production user
+RUN useradd -r -s /bin/false appuser
+RUN chown -R appuser:appuser /app
+USER appuser
 
 # Expose port
-EXPOSE 80
+EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD wget --quiet --tries=1 --spider http://localhost/ || exit 1
+    CMD curl -f http://localhost:3000/health || exit 1
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start the application
+CMD ["npm", "start"]
