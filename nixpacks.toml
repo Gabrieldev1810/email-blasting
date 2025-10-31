@@ -4,9 +4,15 @@
 providers = ["node"]
 
 [variables]
-NODE_ENV = "production"
+NODE_ENV = "production" 
 FLASK_ENV = "production"
-PORT = "5001"
+PORT = "3000"
+PYTHONPATH = "/app/backend"
+PYTHONUNBUFFERED = "1"
+DATABASE_URL = "sqlite:////app/backend/app.db"
+JWT_SECRET_KEY = "production-jwt-secret-change-me"
+SECRET_KEY = "production-secret-key-change-me"
+START_SCHEDULER = "false"
 
 [phases.setup]
 nixPkgs = ["python312", "python312Packages.pip"]
@@ -22,4 +28,4 @@ cmds = [
 ]
 
 [phases.start] 
-cmd = "cd backend && python3 app.py"
+cmd = "cd backend && echo 'Starting Flask app...' && ls -la && python3 -u app.py"
