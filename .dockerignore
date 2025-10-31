@@ -7,9 +7,6 @@ yarn-error.log*
 # Build output (don't ignore dist/ as we need it for production)
 build/
 
-# Don't ignore build-temp directory (contains package files)
-!.build-temp/
-
 # IDE
 .vscode/
 .idea/
@@ -41,6 +38,8 @@ Thumbs.db
 *.md
 !README.md
 
-# Development files
+# Development files - exclude config files except essential build configs
 *.config.ts
 !vite.config.ts
+!tailwind.config.ts
+!tsconfig*.json

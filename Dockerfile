@@ -13,8 +13,8 @@ RUN apt-get update && apt-get install -y \
 # Create app directory
 WORKDIR /app
 
-# Copy package files from temp directory and install ALL dependencies (including dev deps for building)
-COPY .build-temp/package*.json ./
+# Copy package files and install dependencies (including dev deps for building)
+COPY package*.json ./
 RUN npm ci
 
 # Copy application source
@@ -28,6 +28,16 @@ RUN /app/venv/bin/pip install --no-cache-dir -r backend/requirements.txt
 # Add virtual environment to PATH and ensure Node.js is accessible
 ENV PATH="/app/venv/bin:/usr/local/bin:$PATH"
 ENV NODE_PATH="/usr/local/lib/node_modules"
+
+# Debug: List files to ensure everything is copied correctly
+RUN echo "=== Debugging: Listing workspace contents ===" && \
+    ls -la && \
+    echo "=== Checking src directory ===" && \
+    ls -la src/ && \
+    echo "=== Checking if required files exist ===" && \
+    ls -la index.html tailwind.config.ts vite.config.ts && \
+    echo "=== Node and npm versions ===" && \
+    node --version && npm --version
 
 # Build frontend
 RUN npm run build
