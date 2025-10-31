@@ -23,7 +23,7 @@ except Exception as e:
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
-    debug = False  # Disable debug mode to avoid Windows issues
+    debug = os.environ.get('FLASK_ENV') != 'production'  # Enable debug only in development
     
     # Enable scheduler by default (can be disabled with START_SCHEDULER=false)
     start_scheduler_flag = os.environ.get('START_SCHEDULER', 'true').lower() == 'true'
@@ -59,9 +59,10 @@ if __name__ == '__main__':
     print(f"Server will be available at: http://127.0.0.1:{port}")
     
     try:
-        # Use Flask development server for better reliability
-        print("Using Flask development server...")
-        app.run(host='127.0.0.1', port=port, debug=debug, use_reloader=False, threaded=True)
+        # Use appropriate host for production
+        host = '0.0.0.0' if os.environ.get('FLASK_ENV') == 'production' else '127.0.0.1'
+        print(f"Using Flask server on {host}:{port}...")
+        app.run(host=host, port=port, debug=debug, use_reloader=False, threaded=True)
     except KeyboardInterrupt:
         print("Server stopped by user")
     except Exception as e:
