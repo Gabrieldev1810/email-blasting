@@ -1,3 +1,22 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Production builds
+dist
+dist-ssr
+.build-temp
+build
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.production.example
+*.env.backup
+
 # Logs
 logs
 *.log
@@ -7,10 +26,11 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Lock files (keep package.json, ignore locks for flexibility)
+package-lock.json
+yarn.lock
+bun.lockb
+pnpm-lock.yaml
 
 # Editor directories and files
 .vscode/*
@@ -31,7 +51,23 @@ backend/app/__pycache__/
 backend/app/*/__pycache__/
 backend/*.db
 backend/instance/
-backend/migrations/versions/
+
+# Platform deployment files (keep only Coolify configs)
+heroku.yml
+render.yaml
+Procfile
+.nixpacksignore
+deploy.sh
+start.sh
+vercel.json
+netlify.toml
+
+# Docker development files (keep main Docker configs)
+Dockerfile.dev
+Dockerfile.frontend
+Dockerfile.backend
+docker-compose.dev.yml
+docker-compose.override.yml
 
 # Development utility files
 backend/debug_*.py
@@ -46,5 +82,16 @@ backend/align_*.py
 backend/app_simple.py
 debug_*.py
 minimal_*.py
+setup_*.py
+server.js
 *_PROGRESS.md
 *_GUIDE.md
+
+# Backup files
+*.backup
+*_backup.*
+*_old.*
+
+# UI library artifacts
+.flowbite-react/
+node_modules/.cache

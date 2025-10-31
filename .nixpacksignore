@@ -1,3 +1,0 @@
-*
-# Force Coolify to use Dockerfile instead of Nixpacks auto-detection
-# This bypasses the Node.js 18 EOL error in Nixpacks
