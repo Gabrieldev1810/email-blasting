@@ -1,5 +1,4 @@
-# Force Coolify to use custom Dockerfile instead of Nixpacks
-# This resolves Node.js 18 EOL issues
-dockerfile=Dockerfile.production
-buildCommand=docker build -f Dockerfile.production -t app .
-startCommand=docker run -p 3001:3001 app
+# Force Coolify to use Dockerfile instead of Nixpacks
+dockerfile=Dockerfile
+buildpack=false
+nixpacks=false

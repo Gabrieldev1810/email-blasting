@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: beacon-blast
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free

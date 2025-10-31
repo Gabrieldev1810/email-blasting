@@ -1,2 +1,0 @@
-# Disable all buildpacks to force Docker usage
-buildpacks: []
