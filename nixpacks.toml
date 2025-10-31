@@ -1,8 +1,7 @@
 # Nixpacks configuration for Beacon Blast Email Platform
 # Explicitly configure Node.js build with Python runtime
 
-[providers]
-node = "18.x"
+providers = ["node"]
 
 [variables]
 NODE_ENV = "production"
@@ -10,10 +9,9 @@ FLASK_ENV = "production"
 PORT = "5001"
 
 [phases.setup]
-nixPkgs = ["nodejs_18", "npm-9_x", "python312", "python312Packages.pip"]
+nixPkgs = ["python312", "python312Packages.pip"]
 
 [phases.build]
-dependsOn = ["setup"]
 cmds = [
     "npm --version",
     "node --version", 
