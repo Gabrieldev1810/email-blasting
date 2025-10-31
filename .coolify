@@ -2,4 +2,4 @@
 # This resolves Node.js 18 EOL issues
 dockerfile=Dockerfile.production
 buildCommand=docker build -f Dockerfile.production -t app .
-startCommand=docker run -p 3000:3000 app
+startCommand=docker run -p 3001:3001 app
