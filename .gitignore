@@ -52,11 +52,10 @@ backend/app/*/__pycache__/
 backend/*.db
 backend/instance/
 
-# Platform deployment files (keep only Coolify configs)
+# Platform deployment files (keep only Coolify/Nixpacks configs)
 heroku.yml
 render.yaml
 Procfile
-.nixpacksignore
 deploy.sh
 start.sh
 vercel.json

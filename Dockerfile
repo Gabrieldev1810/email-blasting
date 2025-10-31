@@ -13,30 +13,28 @@ RUN apt-get update && apt-get install -y \
 # Create app directory
 WORKDIR /app
 
-# Copy application source first
-COPY . .
+# Copy package files first for better layer caching
+COPY package.json ./
+COPY vite.config.ts tsconfig*.json postcss.config.js tailwind.config.ts ./
 
-# Debug: Check if package.json exists
-RUN echo "=== Checking package.json existence ===" && \
-    ls -la package*.json && \
-    echo "=== Content check ===" && \
-    head -5 package.json
+# Install Node.js dependencies
+RUN npm install
 
-# Install dependencies - use npm install for compatibility
-RUN npm cache clean --force && npm install
+# Copy application source
+COPY src/ ./src/
+COPY public/ ./public/
+COPY index.html ./
+COPY backend/ ./backend/
 
 # Create Python virtual environment and install dependencies
 RUN python3 -m venv /app/venv
 RUN /app/venv/bin/pip install --upgrade pip
 RUN /app/venv/bin/pip install --no-cache-dir -r backend/requirements.txt
 
-# Add virtual environment to PATH and ensure Node.js is accessible
-ENV PATH="/app/venv/bin:/usr/local/bin:$PATH"
-ENV NODE_PATH="/usr/local/lib/node_modules"
-
-# Node and npm version info for debugging
-RUN echo "=== Node and npm versions ===" && \
-    node --version && npm --version
+# Add virtual environment to PATH and set Flask environment
+ENV PATH="/app/venv/bin:$PATH"
+ENV FLASK_ENV=production
+ENV PORT=5001
 
 # Build frontend
 RUN npm run build
@@ -49,12 +47,13 @@ RUN useradd -r -s /bin/false appuser
 RUN chown -R appuser:appuser /app
 USER appuser
 
-# Expose port
-EXPOSE 3001
+# Expose port (Flask backend port)
+EXPOSE 5001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:3001/health || exit 1
+    CMD curl -f http://localhost:5001/api/health || exit 1
 
-# Start the application
-CMD ["node", "server.js"]
+# Start the Flask backend
+WORKDIR /app/backend
+CMD ["python", "app.py"]

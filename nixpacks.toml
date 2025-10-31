@@ -1,0 +1,90 @@
+# Nixpacks configuration for Beacon Blast Email Platform
+# This configures Nixpacks to build both frontend and backend services
+
+[providers]
+# Use Node.js provider for frontend build and Python provider for backend runtime
+node = "18"
+python = "3.12"
+
+[variables]
+# Environment variables
+NODE_ENV = "production"
+FLASK_ENV = "production"
+PORT = "5001"
+
+[phases.setup]
+# Install system dependencies
+nixPkgs = ["nodejs_18", "python312", "python312Packages.pip", "nginx"]
+aptPkgs = ["curl", "wget"]
+
+[phases.build]
+# Build the frontend application
+cmds = [
+    # Install Node.js dependencies
+    "npm ci",
+    
+    # Build the frontend with Vite
+    "npm run build",
+    
+    # Install Python dependencies
+    "pip install --no-cache-dir -r backend/requirements.txt"
+]
+
+[phases.start]
+# Start the Flask backend application
+cmd = "cd backend && python app.py"
+
+[staticAssets]
+# Serve built frontend files from dist directory
+"/app/public" = "dist"
+
+# Custom nginx configuration to serve frontend and proxy API requests
+[staticAssets.nginx.conf]
+content = '''
+daemon off;
+error_log /dev/stdout info;
+worker_processes auto;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    access_log /dev/stdout;
+    default_type application/octet-stream;
+    sendfile on;
+    keepalive_timeout 60;
+    types_hash_max_size 4096;
+    
+    # Gzip compression
+    gzip on;
+    gzip_types text/css application/javascript text/javascript application/json;
+    
+    server {
+        listen 0.0.0.0:80;
+        
+        # Serve frontend static files
+        location / {
+            root /app/public;
+            try_files $uri $uri/ /index.html;
+            autoindex off;
+        }
+        
+        # Proxy API requests to Flask backend
+        location /api/ {
+            proxy_pass http://localhost:5001;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+        
+        # Health check endpoint
+        location /health {
+            proxy_pass http://localhost:5001/api/health;
+            proxy_set_header Host $host;
+        }
+    }
+}
+'''

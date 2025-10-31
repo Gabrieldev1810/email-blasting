@@ -118,13 +118,36 @@ flask db upgrade     # Apply migrations
 
 ## 🚀 Deployment
 
-### **Frontend** - Vercel (Recommended)
+### **Nixpacks** - Coolify/Railway (Recommended)
+Nixpacks automatically detects and builds both frontend and backend:
+
+```bash
+# Build and deploy with Nixpacks (automatic detection)
+nixpacks build .     # Local build test
+# Or simply deploy to Coolify/Railway
+```
+
+**Required Environment Variables:**
+- `DATABASE_URL` - PostgreSQL connection string
+- `JWT_SECRET_KEY` - JWT token secret
+- `FLASK_ENV=production`
+- `PORT=5001`
+
+The included `nixpacks.toml` configures:
+- ⚛️ Node.js 18 for frontend build (Vite)
+- 🐍 Python 3.12 for backend runtime (Flask)
+- 🌐 Nginx reverse proxy (frontend → backend API)
+- 📁 Static file serving from `dist/`
+
+### **Alternative Deployments**
+
+#### **Frontend** - Vercel
 ```bash
 npm run build        # Build production files
 # Deploy dist/ folder to Vercel
 ```
 
-### **Backend** - Render/AWS/Railway
+#### **Backend** - Render/AWS/Railway  
 ```bash
 # Set environment variables
 # Deploy backend/ folder with requirements.txt
