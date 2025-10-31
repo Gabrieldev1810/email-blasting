@@ -1,15 +1,13 @@
 # Production Dockerfile for Beacon Blast Email Platform
 FROM node:20-slim
 
-# Install system dependencies including Python and PostgreSQL client
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    python3-venv \
-    postgresql-client \
-    libpq-dev \
     curl \
     wget \
+    python3 \
+    python3-venv \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app directory
@@ -22,8 +20,13 @@ RUN npm ci --only=production
 # Copy application source
 COPY . .
 
-# Install Python dependencies
-RUN cd backend && pip3 install --no-cache-dir -r requirements.txt
+# Create Python virtual environment and install dependencies
+RUN python3 -m venv /app/venv
+RUN /app/venv/bin/pip install --upgrade pip
+RUN /app/venv/bin/pip install --no-cache-dir -r backend/requirements.txt
+
+# Add virtual environment to PATH
+ENV PATH="/app/venv/bin:$PATH"
 
 # Build frontend
 RUN npm run build

@@ -28,7 +28,14 @@ app.use(express.static(join(__dirname, 'dist')));
 const startBackend = () => {
   console.log('Starting Flask backend...');
   
-  const pythonCommand = 'python3';
+  // Python process configuration
+const { spawn, exec } = require('child_process');
+const path = require('path');
+const { join } = require('path');
+
+// Configuration
+const PORT = process.env.PORT || 3001;
+const pythonCommand = '/app/venv/bin/python';
   const backend = spawn(pythonCommand, [
     join(__dirname, 'backend', 'app.py')
   ], {
@@ -115,7 +122,7 @@ const backendProcess = startBackend();
 // Run admin setup on first startup
 const runAdminSetup = () => {
   console.log('🎯 Attempting initial admin setup...');
-  const setupProcess = spawn('python3', [
+  const setupProcess = spawn('/app/venv/bin/python', [
     join(__dirname, 'setup_admin.py')
   ], {
     stdio: ['pipe', 'pipe', 'pipe']
