@@ -1,5 +1,5 @@
 # Nixpacks configuration for Beacon Blast Email Platform
-# Explicitly configure Node.js build with Python runtime
+# Use Node.js provider but override start command for Flask backend
 
 providers = ["node"]
 
@@ -27,5 +27,5 @@ cmds = [
     "pip3 install --no-cache-dir -r backend/requirements.txt"
 ]
 
-[phases.start] 
-cmd = "cd backend && echo 'Starting Flask app...' && ls -la && python3 -u app.py"
+[start]
+cmd = "chmod +x /app/start.sh && /app/start.sh"
